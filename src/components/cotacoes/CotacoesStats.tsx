@@ -1,9 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingCart, Clock, CheckCircle, TrendingDown } from "lucide-react";
-import { Cotacao } from "@/types/cotacoes";
+import type { CotacaoCompleta } from "@/types/cotacoes";
 
 interface CotacoesStatsProps {
-  cotacoes: Cotacao[];
+  cotacoes: CotacaoCompleta[];
 }
 
 const CotacoesStats = ({ cotacoes }: CotacoesStatsProps) => {
@@ -27,7 +27,7 @@ const CotacoesStats = ({ cotacoes }: CotacoesStatsProps) => {
             <div>
               <p className="text-sm text-muted-foreground">Abertas</p>
               <p className="text-xl font-bold">
-                {cotacoes.filter(c => c.status === "aberta").length}
+                {cotacoes.filter(c => c.status === "aberta" || c.status === "enviada").length}
               </p>
             </div>
           </div>

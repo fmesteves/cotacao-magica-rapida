@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Copy, Mail } from "lucide-react";
-import { Cotacao } from "@/types/cotacoes";
+import type { CotacaoCompleta } from "@/types/cotacoes";
 import { gerarLinkUnico } from "@/utils/cotacoes";
 import { toast } from "@/hooks/use-toast";
 
 interface EnviarConvitesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  cotacao: Cotacao | null;
+  cotacao: CotacaoCompleta | null;
 }
 
 const EnviarConvitesModal = ({ open, onOpenChange, cotacao }: EnviarConvitesModalProps) => {
@@ -26,9 +26,9 @@ Você foi convidado a participar de uma cotação.
 
 Detalhes:
 - Código: ${cotacao.id}
-- RC: ${cotacao.rcId}
+- Cotação: ${cotacao.numero_cotacao}
 - Descrição: ${cotacao.descricao}
-- Prazo: ${cotacao.prazoVencimento}
+- Prazo: ${new Date(cotacao.prazo_vencimento).toLocaleDateString('pt-BR')}
 
 Para enviar sua proposta, acesse o link abaixo:
 ${link}
@@ -71,11 +71,11 @@ Equipe de Compras`);
           <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
             <div>
               <Label className="text-sm text-muted-foreground">Cotação</Label>
-              <p className="font-medium">{cotacao.id}</p>
+              <p className="font-medium">{cotacao.numero_cotacao}</p>
             </div>
             <div>
-              <Label className="text-sm text-muted-foreground">RC</Label>
-              <p className="font-medium">{cotacao.rcId}</p>
+              <Label className="text-sm text-muted-foreground">Itens</Label>
+              <p className="font-medium">{cotacao.cotacao_itens?.length || 0} itens</p>
             </div>
             <div className="col-span-2">
               <Label className="text-sm text-muted-foreground">Descrição</Label>

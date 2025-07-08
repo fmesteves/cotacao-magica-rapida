@@ -10,6 +10,7 @@ import NovaRequisicao from "./pages/NovaRequisicao";
 import Fornecedores from "./pages/Fornecedores";
 import NovoFornecedor from "./pages/NovoFornecedor";
 import Cotacoes from "./pages/Cotacoes";
+import NovaCotacao from "./pages/NovaCotacao";
 import PainelFornecedor from "./pages/PainelFornecedor";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/fornecedores" element={<Fornecedores />} />
             <Route path="/fornecedores/novo" element={<NovoFornecedor />} />
             <Route path="/cotacoes" element={<Cotacoes />} />
+            <Route path="/cotacoes/nova" element={<NovaCotacao />} />
             <Route path="/cotacao/:token" element={<PainelFornecedor />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

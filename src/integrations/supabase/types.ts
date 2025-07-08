@@ -14,6 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
+      cotacao_fornecedores: {
+        Row: {
+          cotacao_id: string
+          created_at: string
+          data_convite: string
+          data_visualizacao: string | null
+          fornecedor_id: string
+          id: string
+          status_resposta: string
+          token_acesso: string
+          updated_at: string
+        }
+        Insert: {
+          cotacao_id: string
+          created_at?: string
+          data_convite?: string
+          data_visualizacao?: string | null
+          fornecedor_id: string
+          id?: string
+          status_resposta?: string
+          token_acesso: string
+          updated_at?: string
+        }
+        Update: {
+          cotacao_id?: string
+          created_at?: string
+          data_convite?: string
+          data_visualizacao?: string | null
+          fornecedor_id?: string
+          id?: string
+          status_resposta?: string
+          token_acesso?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotacao_fornecedores_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacao_fornecedores_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cotacao_itens: {
+        Row: {
+          cotacao_id: string
+          created_at: string
+          id: string
+          quantidade_solicitada: number
+          requisicao_id: string
+          updated_at: string
+        }
+        Insert: {
+          cotacao_id: string
+          created_at?: string
+          id?: string
+          quantidade_solicitada: number
+          requisicao_id: string
+          updated_at?: string
+        }
+        Update: {
+          cotacao_id?: string
+          created_at?: string
+          id?: string
+          quantidade_solicitada?: number
+          requisicao_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotacao_itens_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacao_itens_requisicao_id_fkey"
+            columns: ["requisicao_id"]
+            isOneToOne: false
+            referencedRelation: "requisicoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cotacoes: {
+        Row: {
+          created_at: string
+          data_criacao: string
+          data_envio: string | null
+          descricao: string
+          id: string
+          numero_cotacao: string
+          observacoes: string | null
+          prazo_vencimento: string
+          solicitante: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_criacao?: string
+          data_envio?: string | null
+          descricao: string
+          id?: string
+          numero_cotacao: string
+          observacoes?: string | null
+          prazo_vencimento: string
+          solicitante: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_criacao?: string
+          data_envio?: string | null
+          descricao?: string
+          id?: string
+          numero_cotacao?: string
+          observacoes?: string | null
+          prazo_vencimento?: string
+          solicitante?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fornecedores: {
         Row: {
           avaliacao: number | null
@@ -67,6 +202,60 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      propostas: {
+        Row: {
+          cotacao_fornecedor_id: string
+          created_at: string
+          data_proposta: string
+          id: string
+          observacoes: string | null
+          prazo_entrega: number
+          preco_unitario: number
+          quantidade_disponivel: number
+          requisicao_id: string
+          updated_at: string
+        }
+        Insert: {
+          cotacao_fornecedor_id: string
+          created_at?: string
+          data_proposta?: string
+          id?: string
+          observacoes?: string | null
+          prazo_entrega: number
+          preco_unitario: number
+          quantidade_disponivel: number
+          requisicao_id: string
+          updated_at?: string
+        }
+        Update: {
+          cotacao_fornecedor_id?: string
+          created_at?: string
+          data_proposta?: string
+          id?: string
+          observacoes?: string | null
+          prazo_entrega?: number
+          preco_unitario?: number
+          quantidade_disponivel?: number
+          requisicao_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_cotacao_fornecedor_id_fkey"
+            columns: ["cotacao_fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "cotacao_fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_requisicao_id_fkey"
+            columns: ["requisicao_id"]
+            isOneToOne: false
+            referencedRelation: "requisicoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       requisicoes: {
         Row: {

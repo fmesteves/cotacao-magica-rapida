@@ -1,14 +1,36 @@
-export interface Cotacao {
-  id: string;
-  rcId: string;
-  descricao: string;
-  solicitante: string;
-  dataEnvio: string;
-  prazoVencimento: string;
-  fornecedoresConvidados: number;
-  respostasRecebidas: number;
-  melhorOferta: string;
-  economia: string;
-  status: 'aberta' | 'analise' | 'finalizada' | 'vencida';
-  diasRestantes: number;
+import type { Tables } from '@/integrations/supabase/types';
+
+export type Cotacao = Tables<'cotacoes'>;
+export type CotacaoFornecedor = Tables<'cotacao_fornecedores'>;
+export type CotacaoItem = Tables<'cotacao_itens'>;
+export type Proposta = Tables<'propostas'>;
+
+export interface CotacaoCompleta extends Cotacao {
+  cotacao_fornecedores?: (CotacaoFornecedor & {
+    fornecedores?: {
+      id: string;
+      nome: string;
+      email: string;
+    };
+  })[];
+  cotacao_itens?: (CotacaoItem & {
+    requisicoes?: {
+      id: string;
+      numero_rc: string;
+      descricao: string;
+      fabricante: string;
+    };
+  })[];
 }
+
+export interface CotacaoStatus {
+  rascunho: string;
+  enviada: string;
+  aberta: string;
+  analise: string;
+  finalizada: string;
+  cancelada: string;
+  vencida: string;
+}
+
+export type StatusCotacao = keyof CotacaoStatus;

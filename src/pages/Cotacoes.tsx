@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Mail, Filter } from "lucide-react";
-import { cotacoesData } from "@/data/cotacoes";
+import { Search, Mail, Filter, Plus } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useCotacoes } from "@/hooks/useCotacoes";
 import { filterCotacoes } from "@/utils/cotacoes";
-import { Cotacao } from "@/types/cotacoes";
+import type { CotacaoCompleta } from "@/types/cotacoes";
+import { toast } from "@/hooks/use-toast";
 import CotacoesStats from "@/components/cotacoes/CotacoesStats";
 import CotacoesTable from "@/components/cotacoes/CotacoesTable";
 import EnviarConvitesModal from "@/components/cotacoes/EnviarConvitesModal";
@@ -13,14 +15,24 @@ import EnviarConvitesModal from "@/components/cotacoes/EnviarConvitesModal";
 const Cotacoes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedCotacao, setSelectedCotacao] = useState<Cotacao | null>(null);
+  const [selectedCotacao, setSelectedCotacao] = useState<CotacaoCompleta | null>(null);
+  
+  const { data: cotacoes = [], isLoading, error } = useCotacoes();
 
-  const handleEnviarConvites = (cotacao: Cotacao) => {
+  if (error) {
+    toast({
+      title: "Erro ao carregar cotações",
+      description: "Não foi possível carregar as cotações. Tente novamente.",
+      variant: "destructive",
+    });
+  }
+
+  const handleEnviarConvites = (cotacao: CotacaoCompleta) => {
     setSelectedCotacao(cotacao);
     setDialogOpen(true);
   };
 
-  const filteredCotacoes = filterCotacoes(cotacoesData, searchTerm);
+  const filteredCotacoes = filterCotacoes(cotacoes, searchTerm);
 
   return (
     <div className="space-y-6">
@@ -37,10 +49,12 @@ const Cotacoes = () => {
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
-          <Button className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
-            <Mail className="h-4 w-4" />
-            Enviar Convites
-          </Button>
+          <Link to="/cotacoes/nova">
+            <Button className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
+              <Plus className="h-4 w-4" />
+              Nova Cotação
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -62,12 +76,13 @@ const Cotacoes = () => {
       </Card>
 
       {/* Stats */}
-      <CotacoesStats cotacoes={cotacoesData} />
+      <CotacoesStats cotacoes={cotacoes} />
 
       {/* Table */}
       <CotacoesTable 
         cotacoes={filteredCotacoes} 
-        onEnviarConvites={handleEnviarConvites} 
+        onEnviarConvites={handleEnviarConvites}
+        isLoading={isLoading} 
       />
 
       {/* Modal de Envio de Convites */}
