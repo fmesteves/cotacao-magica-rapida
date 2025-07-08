@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      fornecedores: {
+        Row: {
+          avaliacao: number | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string
+          created_at: string
+          email: string
+          endereco: string | null
+          estado: string
+          grupos_mercadoria: string[]
+          id: string
+          nome: string
+          observacoes: string | null
+          status: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avaliacao?: number | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj: string
+          created_at?: string
+          email: string
+          endereco?: string | null
+          estado: string
+          grupos_mercadoria?: string[]
+          id?: string
+          nome: string
+          observacoes?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avaliacao?: number | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string
+          created_at?: string
+          email?: string
+          endereco?: string | null
+          estado?: string
+          grupos_mercadoria?: string[]
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       requisicoes: {
         Row: {
           codigo_int_fabricante: string | null

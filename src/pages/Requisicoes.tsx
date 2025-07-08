@@ -4,69 +4,33 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, FileText, Calendar, User, Filter, Upload } from "lucide-react";
+import { Plus, Search, FileText, Calendar, User, Filter, Upload, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useRequisicoes } from "@/hooks/useRequisicoes";
+import { toast } from "@/hooks/use-toast";
 
 const Requisicoes = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { data: requisicoes = [], isLoading, error } = useRequisicoes();
 
-  const requisicoes = [
-    {
-      id: "RC-2024-001",
-      solicitante: "João Silva",
-      departamento: "TI",
-      grupo: "Material de Escritório",
-      dataSolicitacao: "2024-01-15",
-      prazoEntrega: "2024-01-30",
-      valor: "R$ 2.500,00",
-      status: "pending",
-      itens: 12,
-    },
-    {
-      id: "RC-2024-002",
-      solicitante: "Maria Santos",
-      departamento: "RH",
-      grupo: "Equipamentos",
-      dataSolicitacao: "2024-01-14",
-      prazoEntrega: "2024-01-28",
-      valor: "R$ 15.800,00",
-      status: "cotacao",
-      itens: 3,
-    },
-    {
-      id: "RC-2024-003",
-      solicitante: "Pedro Costa",
-      departamento: "Produção",
-      grupo: "Ferramentas",
-      dataSolicitacao: "2024-01-13",
-      prazoEntrega: "2024-01-25",
-      valor: "R$ 8.950,00",
-      status: "aprovada",
-      itens: 8,
-    },
-    {
-      id: "RC-2024-004",
-      solicitante: "Ana Oliveira",
-      departamento: "Marketing",
-      grupo: "Material Gráfico",
-      dataSolicitacao: "2024-01-12",
-      prazoEntrega: "2024-01-27",
-      valor: "R$ 3.200,00",
-      status: "aguardando",
-      itens: 15,
-    },
-  ];
+  if (error) {
+    toast({
+      title: "Erro ao carregar requisições",
+      description: "Não foi possível carregar as requisições. Tente novamente.",
+      variant: "destructive",
+    });
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "pending":
-        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning">Pendente</Badge>;
-      case "cotacao":
+      case "aberta":
+        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning">Aberta</Badge>;
+      case "em_cotacao":
         return <Badge variant="outline" className="bg-primary/10 text-primary border-primary">Em Cotação</Badge>;
       case "aprovada":
         return <Badge variant="outline" className="bg-success/10 text-success border-success">Aprovada</Badge>;
-      case "aguardando":
-        return <Badge variant="outline" className="bg-muted text-muted-foreground">Aguardando</Badge>;
+      case "finalizada":
+        return <Badge variant="outline" className="bg-muted text-muted-foreground">Finalizada</Badge>;
       default:
         return <Badge variant="outline">Desconhecido</Badge>;
     }
@@ -74,10 +38,10 @@ const Requisicoes = () => {
 
   const filteredRequisicoes = requisicoes.filter(
     (req) =>
-      req.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.solicitante.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.departamento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.grupo.toLowerCase().includes(searchTerm.toLowerCase())
+      req.numero_rc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.fabricante.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.grupo_mercadoria.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -143,9 +107,9 @@ const Requisicoes = () => {
             <div className="flex items-center space-x-2">
               <Calendar className="h-5 w-5 text-warning" />
               <div>
-                <p className="text-sm text-muted-foreground">Pendentes</p>
+                <p className="text-sm text-muted-foreground">Material de Escritório</p>
                 <p className="text-xl font-bold">
-                  {requisicoes.filter(r => r.status === "pending").length}
+                  {requisicoes.filter(r => r.grupo_mercadoria === "Material de Escritório").length}
                 </p>
               </div>
             </div>
@@ -156,9 +120,9 @@ const Requisicoes = () => {
             <div className="flex items-center space-x-2">
               <User className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-sm text-muted-foreground">Em Cotação</p>
+                <p className="text-sm text-muted-foreground">Equipamentos</p>
                 <p className="text-xl font-bold">
-                  {requisicoes.filter(r => r.status === "cotacao").length}
+                  {requisicoes.filter(r => r.grupo_mercadoria === "Equipamentos").length}
                 </p>
               </div>
             </div>
@@ -169,9 +133,14 @@ const Requisicoes = () => {
             <div className="flex items-center space-x-2">
               <FileText className="h-5 w-5 text-success" />
               <div>
-                <p className="text-sm text-muted-foreground">Aprovadas</p>
+                <p className="text-sm text-muted-foreground">Este Mês</p>
                 <p className="text-xl font-bold">
-                  {requisicoes.filter(r => r.status === "aprovada").length}
+                  {requisicoes.filter(r => {
+                    const reqDate = new Date(r.created_at);
+                    const now = new Date();
+                    return reqDate.getMonth() === now.getMonth() && 
+                           reqDate.getFullYear() === now.getFullYear();
+                  }).length}
                 </p>
               </div>
             </div>
@@ -185,51 +154,62 @@ const Requisicoes = () => {
           <CardTitle>Lista de Requisições</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Solicitante</TableHead>
-                  <TableHead>Departamento</TableHead>
-                  <TableHead>Grupo</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Prazo</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Itens</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRequisicoes.map((req) => (
-                  <TableRow key={req.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{req.id}</TableCell>
-                    <TableCell>{req.solicitante}</TableCell>
-                    <TableCell>{req.departamento}</TableCell>
-                    <TableCell>{req.grupo}</TableCell>
-                    <TableCell>{req.dataSolicitacao}</TableCell>
-                    <TableCell>{req.prazoEntrega}</TableCell>
-                    <TableCell className="font-medium">{req.valor}</TableCell>
-                    <TableCell>{req.itens}</TableCell>
-                    <TableCell>{getStatusBadge(req.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          Ver
-                        </Button>
-                        {req.status === "pending" && (
-                          <Button size="sm" className="bg-gradient-primary hover:opacity-90">
-                            Cotar
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Carregando requisições...</span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código RC</TableHead>
+                    <TableHead>Material</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Fabricante</TableHead>
+                    <TableHead>Grupo</TableHead>
+                    <TableHead>Quantidade</TableHead>
+                    <TableHead>Unidade</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredRequisicoes.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        Nenhuma requisição encontrada
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredRequisicoes.map((req) => (
+                      <TableRow key={req.id} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">{req.numero_rc}</TableCell>
+                        <TableCell>{req.codigo_material}</TableCell>
+                        <TableCell className="max-w-xs truncate">{req.descricao}</TableCell>
+                        <TableCell>{req.fabricante}</TableCell>
+                        <TableCell>{req.grupo_mercadoria}</TableCell>
+                        <TableCell>{req.quantidade}</TableCell>
+                        <TableCell>{req.unidade_medida}</TableCell>
+                        <TableCell>{new Date(req.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline">
+                              Ver
+                            </Button>
+                            <Button size="sm" className="bg-gradient-primary hover:opacity-90">
+                              Cotar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

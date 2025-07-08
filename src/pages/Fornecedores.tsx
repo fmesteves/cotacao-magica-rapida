@@ -4,86 +4,58 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Building, Star, Mail, Phone, Filter, MapPin, Upload } from "lucide-react";
+import { Plus, Search, Building, Star, Mail, Phone, Filter, MapPin, Upload, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ImportarFornecedores from "@/components/ImportarFornecedores";
 import { toast } from "@/hooks/use-toast";
+import { useFornecedores, useCreateFornecedor } from "@/hooks/useFornecedores";
 
 const Fornecedores = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [mostrarImportacao, setMostrarImportacao] = useState(false);
-  const [fornecedores, setFornecedores] = useState([
-    {
-      id: "FORN-001",
-      nome: "Empresa ABC Ltda",
-      cnpj: "12.345.678/0001-90",
-      email: "contato@empresaabc.com.br",
-      telefone: "(11) 3456-7890",
-      cidade: "São Paulo",
-      estado: "SP",
-      grupos: ["Material de Escritório", "Equipamentos"],
-      avaliacao: 4.8,
-      status: "ativo",
-      ultimaCotacao: "2024-01-10",
-    },
-    {
-      id: "FORN-002",
-      nome: "XYZ Fornecimentos S.A.",
-      cnpj: "98.765.432/0001-10",
-      email: "vendas@xyzforn.com.br",
-      telefone: "(11) 2345-6789",
-      cidade: "Campinas",
-      estado: "SP",
-      grupos: ["Ferramentas", "Material Elétrico"],
-      avaliacao: 4.5,
-      status: "ativo",
-      ultimaCotacao: "2024-01-08",
-    },
-    {
-      id: "FORN-003",
-      nome: "Distribuidora Tech",
-      cnpj: "11.222.333/0001-44",
-      email: "comercial@distribtech.com.br",
-      telefone: "(11) 4567-8901",
-      cidade: "São Paulo",
-      estado: "SP",
-      grupos: ["Equipamentos", "Tecnologia"],
-      avaliacao: 4.9,
-      status: "ativo",
-      ultimaCotacao: "2024-01-12",
-    },
-    {
-      id: "FORN-004",
-      nome: "Gráfica Premium",
-      cnpj: "55.666.777/0001-88",
-      email: "orcamento@graficapremium.com.br",
-      telefone: "(11) 5678-9012",
-      cidade: "Santo André",
-      estado: "SP",
-      grupos: ["Material Gráfico", "Impressos"],
-      avaliacao: 4.2,
-      status: "pendente",
-      ultimaCotacao: "2024-01-05",
-    },
-  ]);
+  const { data: fornecedores = [], isLoading, error } = useFornecedores();
+  const createFornecedor = useCreateFornecedor();
 
-  const handleImport = (fornecedoresImportados: any[]) => {
-    const novosFornecedores = fornecedoresImportados.map((forn, index) => ({
-      id: `FORN-${String(fornecedores.length + index + 1).padStart(3, '0')}`,
-      nome: forn.razaoSocial,
-      cnpj: forn.cnpj,
-      email: forn.email,
-      telefone: "(11) 0000-0000", // Placeholder, pois não vem na importação
-      cidade: "Não informado", // Placeholder, pois não vem na importação
-      estado: forn.uf,
-      grupos: [forn.grupoMaterial],
-      avaliacao: 0,
-      status: "ativo",
-      ultimaCotacao: new Date().toISOString().split('T')[0],
-    }));
+  if (error) {
+    toast({
+      title: "Erro ao carregar fornecedores",
+      description: "Não foi possível carregar os fornecedores. Tente novamente.",
+      variant: "destructive",
+    });
+  }
 
-    setFornecedores([...fornecedores, ...novosFornecedores]);
-    setMostrarImportacao(false);
+  const handleImport = async (fornecedoresImportados: any[]) => {
+    try {
+      for (const forn of fornecedoresImportados) {
+        await createFornecedor.mutateAsync({
+          nome: forn.razaoSocial,
+          cnpj: forn.cnpj,
+          email: forn.email,
+          telefone: forn.telefone || "",
+          endereco: forn.endereco || "",
+          cidade: forn.cidade || "Não informado",
+          estado: forn.uf,
+          cep: forn.cep || "",
+          grupos_mercadoria: [forn.grupoMaterial],
+          avaliacao: 0,
+          status: "ativo",
+          observacoes: "",
+        });
+      }
+      
+      toast({
+        title: "Fornecedores importados",
+        description: `${fornecedoresImportados.length} fornecedores foram importados com sucesso.`,
+      });
+      
+      setMostrarImportacao(false);
+    } catch (error) {
+      toast({
+        title: "Erro na importação",
+        description: "Não foi possível importar os fornecedores. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -116,8 +88,8 @@ const Fornecedores = () => {
     (forn) =>
       forn.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       forn.cnpj.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      forn.cidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      forn.grupos.some(grupo => grupo.toLowerCase().includes(searchTerm.toLowerCase()))
+      (forn.cidade && forn.cidade.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      forn.grupos_mercadoria.some(grupo => grupo.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -227,88 +199,107 @@ const Fornecedores = () => {
           <CardTitle>Lista de Fornecedores</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>Localização</TableHead>
-                  <TableHead>Grupos</TableHead>
-                  <TableHead>Avaliação</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Última Cotação</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredFornecedores.map((forn) => (
-                  <TableRow key={forn.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{forn.nome}</p>
-                        <p className="text-sm text-muted-foreground">{forn.cnpj}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm">{forn.email}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm">{forn.telefone}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{forn.cidade}, {forn.estado}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {forn.grupos.slice(0, 2).map((grupo, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {grupo}
-                          </Badge>
-                        ))}
-                        {forn.grupos.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{forn.grupos.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <div className="flex">{renderStars(forn.avaliacao)}</div>
-                        <span className="text-sm text-muted-foreground ml-1">
-                          {forn.avaliacao}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(forn.status)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {forn.ultimaCotacao}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          Ver
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          Editar
-                        </Button>
-                      </div>
-                    </TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Carregando fornecedores...</span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Contato</TableHead>
+                    <TableHead>Localização</TableHead>
+                    <TableHead>Grupos</TableHead>
+                    <TableHead>Avaliação</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Data Cadastro</TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredFornecedores.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        Nenhum fornecedor encontrado
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredFornecedores.map((forn) => (
+                      <TableRow key={forn.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{forn.nome}</p>
+                            <p className="text-sm text-muted-foreground">{forn.cnpj}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1">
+                              <Mail className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm">{forn.email}</span>
+                            </div>
+                            {forn.telefone && (
+                              <div className="flex items-center gap-1">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{forn.telefone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-sm">
+                              {forn.cidade ? `${forn.cidade}, ` : ""}{forn.estado}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {forn.grupos_mercadoria.slice(0, 2).map((grupo, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {grupo}
+                              </Badge>
+                            ))}
+                            {forn.grupos_mercadoria.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{forn.grupos_mercadoria.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <div className="flex">{renderStars(forn.avaliacao || 0)}</div>
+                            <span className="text-sm text-muted-foreground ml-1">
+                              {forn.avaliacao || 0}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(forn.status)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(forn.created_at).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline">
+                              Ver
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              Editar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
