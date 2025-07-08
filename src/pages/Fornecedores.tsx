@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Building, Star, Mail, Phone, Filter, MapPin } from "lucide-react";
+import { Plus, Search, Building, Star, Mail, Phone, Filter, MapPin, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
+import ImportarFornecedores from "@/components/ImportarFornecedores";
+import { toast } from "@/hooks/use-toast";
 
 const Fornecedores = () => {
   const [searchTerm, setSearchTerm] = useState("");
-
-  const fornecedores = [
+  const [mostrarImportacao, setMostrarImportacao] = useState(false);
+  const [fornecedores, setFornecedores] = useState([
     {
       id: "FORN-001",
       nome: "Empresa ABC Ltda",
@@ -63,7 +65,26 @@ const Fornecedores = () => {
       status: "pendente",
       ultimaCotacao: "2024-01-05",
     },
-  ];
+  ]);
+
+  const handleImport = (fornecedoresImportados: any[]) => {
+    const novosFornecedores = fornecedoresImportados.map((forn, index) => ({
+      id: `FORN-${String(fornecedores.length + index + 1).padStart(3, '0')}`,
+      nome: forn.razaoSocial,
+      cnpj: forn.cnpj,
+      email: forn.email,
+      telefone: "(11) 0000-0000", // Placeholder, pois não vem na importação
+      cidade: "Não informado", // Placeholder, pois não vem na importação
+      estado: forn.uf,
+      grupos: [forn.grupoMaterial],
+      avaliacao: 0,
+      status: "ativo",
+      ultimaCotacao: new Date().toISOString().split('T')[0],
+    }));
+
+    setFornecedores([...fornecedores, ...novosFornecedores]);
+    setMostrarImportacao(false);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -113,6 +134,14 @@ const Fornecedores = () => {
           <Button variant="outline" className="flex items-center gap-2">
             <Filter className="h-4 w-4" />
             Filtros
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setMostrarImportacao(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Importar
           </Button>
           <Link to="/fornecedores/novo">
             <Button className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
@@ -282,6 +311,14 @@ const Fornecedores = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Importação */}
+      {mostrarImportacao && (
+        <ImportarFornecedores
+          onClose={() => setMostrarImportacao(false)}
+          onImport={handleImport}
+        />
+      )}
     </div>
   );
 };
