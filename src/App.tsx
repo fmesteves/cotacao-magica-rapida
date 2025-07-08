@@ -7,6 +7,7 @@ import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import Requisicoes from "./pages/Requisicoes";
 import Fornecedores from "./pages/Fornecedores";
+import NovoFornecedor from "./pages/NovoFornecedor";
 import Cotacoes from "./pages/Cotacoes";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/requisicoes" element={<Requisicoes />} />
             <Route path="/fornecedores" element={<Fornecedores />} />
+            <Route path="/fornecedores/novo" element={<NovoFornecedor />} />
             <Route path="/cotacoes" element={<Cotacoes />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
