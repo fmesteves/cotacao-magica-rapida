@@ -14,7 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      requisicoes: {
+        Row: {
+          codigo_int_fabricante: string | null
+          codigo_material: string
+          created_at: string
+          descricao: string
+          fabricante: string
+          familia: string
+          grupo_mercadoria: string
+          id: string
+          numero_rc: string
+          preco_referencia: number | null
+          quantidade: number
+          unidade_medida: string
+          unidade_preco: number | null
+          updated_at: string
+        }
+        Insert: {
+          codigo_int_fabricante?: string | null
+          codigo_material: string
+          created_at?: string
+          descricao: string
+          fabricante: string
+          familia: string
+          grupo_mercadoria: string
+          id?: string
+          numero_rc: string
+          preco_referencia?: number | null
+          quantidade: number
+          unidade_medida: string
+          unidade_preco?: number | null
+          updated_at?: string
+        }
+        Update: {
+          codigo_int_fabricante?: string | null
+          codigo_material?: string
+          created_at?: string
+          descricao?: string
+          fabricante?: string
+          familia?: string
+          grupo_mercadoria?: string
+          id?: string
+          numero_rc?: string
+          preco_referencia?: number | null
+          quantidade?: number
+          unidade_medida?: string
+          unidade_preco?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
