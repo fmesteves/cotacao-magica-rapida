@@ -9,6 +9,7 @@ import Requisicoes from "./pages/Requisicoes";
 import Fornecedores from "./pages/Fornecedores";
 import NovoFornecedor from "./pages/NovoFornecedor";
 import Cotacoes from "./pages/Cotacoes";
+import PainelFornecedor from "./pages/PainelFornecedor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/fornecedores" element={<Fornecedores />} />
             <Route path="/fornecedores/novo" element={<NovoFornecedor />} />
             <Route path="/cotacoes" element={<Cotacoes />} />
+            <Route path="/cotacao/:token" element={<PainelFornecedor />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

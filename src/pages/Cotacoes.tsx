@@ -5,10 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Search, ShoppingCart, Clock, CheckCircle, Mail, Filter, TrendingDown, Award } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Search, ShoppingCart, Clock, CheckCircle, Mail, Filter, TrendingDown, Award, Send, Copy, ExternalLink } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 const Cotacoes = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedCotacao, setSelectedCotacao] = useState<any>(null);
+  const [emailText, setEmailText] = useState("");
 
   const cotacoes = [
     {
@@ -88,6 +95,53 @@ const Cotacoes = () => {
     if (percentage >= 80) return "bg-success";
     if (percentage >= 50) return "bg-warning";
     return "bg-primary";
+  };
+
+  const gerarLinkUnico = (cotacaoId: string) => {
+    // Gerar token único (em produção seria mais seguro)
+    const token = btoa(`${cotacaoId}-${Date.now()}-${Math.random()}`);
+    return `${window.location.origin}/cotacao/${token}`;
+  };
+
+  const handleEnviarConvites = (cotacao: any) => {
+    setSelectedCotacao(cotacao);
+    const link = gerarLinkUnico(cotacao.id);
+    setEmailText(`Prezado fornecedor,
+
+Você foi convidado a participar de uma cotação.
+
+Detalhes:
+- Código: ${cotacao.id}
+- RC: ${cotacao.rcId}
+- Descrição: ${cotacao.descricao}
+- Prazo: ${cotacao.prazoVencimento}
+
+Para enviar sua proposta, acesse o link abaixo:
+${link}
+
+Atenciosamente,
+Equipe de Compras`);
+    setDialogOpen(true);
+  };
+
+  const copiarLink = () => {
+    if (selectedCotacao) {
+      const link = gerarLinkUnico(selectedCotacao.id);
+      navigator.clipboard.writeText(link);
+      toast({
+        title: "Link copiado!",
+        description: "O link foi copiado para a área de transferência.",
+      });
+    }
+  };
+
+  const enviarEmail = () => {
+    // Simular envio de email
+    toast({
+      title: "Convites enviados!",
+      description: "Os emails foram enviados para os fornecedores selecionados.",
+    });
+    setDialogOpen(false);
   };
 
   const filteredCotacoes = cotacoes.filter(
@@ -261,19 +315,30 @@ const Cotacoes = () => {
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(cot.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
-                            Ver
-                          </Button>
-                          {cot.status === "analise" && (
-                            <Button size="sm" className="bg-gradient-success hover:opacity-90">
-                              <Award className="h-3 w-3 mr-1" />
-                              Definir
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
+                       <TableCell>
+                         <div className="flex gap-2">
+                           <Button size="sm" variant="outline">
+                             Ver
+                           </Button>
+                           {(cot.status === "aberta" || cot.status === "analise") && (
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={() => handleEnviarConvites(cot)}
+                               className="flex items-center gap-1"
+                             >
+                               <Send className="h-3 w-3" />
+                               Convites
+                             </Button>
+                           )}
+                           {cot.status === "analise" && (
+                             <Button size="sm" className="bg-gradient-success hover:opacity-90">
+                               <Award className="h-3 w-3 mr-1" />
+                               Definir
+                             </Button>
+                           )}
+                         </div>
+                       </TableCell>
                     </TableRow>
                   );
                 })}
@@ -282,6 +347,62 @@ const Cotacoes = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Envio de Convites */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Enviar Convites para Cotação</DialogTitle>
+          </DialogHeader>
+          
+          {selectedCotacao && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <Label className="text-sm text-muted-foreground">Cotação</Label>
+                  <p className="font-medium">{selectedCotacao.id}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">RC</Label>
+                  <p className="font-medium">{selectedCotacao.rcId}</p>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-sm text-muted-foreground">Descrição</Label>
+                  <p className="font-medium">{selectedCotacao.descricao}</p>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="email-text">Texto do E-mail</Label>
+                <Textarea
+                  id="email-text"
+                  value={emailText}
+                  onChange={(e) => setEmailText(e.target.value)}
+                  rows={12}
+                  className="mt-2"
+                />
+              </div>
+
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={copiarLink} className="flex items-center gap-2">
+                  <Copy className="h-4 w-4" />
+                  Copiar Link
+                </Button>
+                
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={enviarEmail} className="bg-gradient-primary hover:opacity-90">
+                    <Mail className="h-4 w-4 mr-2" />
+                    Enviar E-mails
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
