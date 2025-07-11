@@ -15,7 +15,7 @@ export const useCotacoes = () => {
             status_resposta,
             data_convite,
             data_visualizacao,
-            fornecedores(id, nome, email)
+            fornecedores(id, razao_social, email)
           ),
           cotacao_itens(
             id,

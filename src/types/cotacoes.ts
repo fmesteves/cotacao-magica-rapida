@@ -9,7 +9,7 @@ export interface CotacaoCompleta extends Cotacao {
   cotacao_fornecedores?: (CotacaoFornecedor & {
     fornecedores?: {
       id: string;
-      nome: string;
+      razao_social: string;
       email: string;
     };
   })[];

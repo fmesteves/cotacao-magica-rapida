@@ -311,7 +311,7 @@ const NovaCotacao = () => {
                       }}
                     />
                     <Label htmlFor={fornecedor.id} className="text-sm font-normal">
-                      {fornecedor.nome}
+                      {fornecedor.razao_social}
                     </Label>
                   </div>
                 ))}
@@ -323,7 +323,7 @@ const NovaCotacao = () => {
                     const fornecedor = fornecedores.find(f => f.id === fornecedorId);
                     return (
                       <Badge key={fornecedorId} variant="secondary">
-                        {fornecedor?.nome}
+                        {fornecedor?.razao_social}
                       </Badge>
                     );
                   })}

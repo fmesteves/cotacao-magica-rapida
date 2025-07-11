@@ -36,9 +36,9 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 const Fornecedores = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [mostrarImportacao, setMostrarImportacao] = useState(false);
-  // const { data: fornecedores = [], isLoading, error } = useFornecedores();
-  const [fornecedores, setFornecedores] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: fornecedores = [], isLoading, error } = useFornecedores();
+  // const [fornecedores, setFornecedores] = useState([]);
+  // const [isLoading, setIsLoading] = useState(false);
 
   const createFornecedor = useCreateFornecedor();
   const createManyFornecedor = useCreateManyFornecedor();
@@ -127,7 +127,7 @@ const Fornecedores = () => {
 
   const filteredFornecedores = fornecedores.filter(
     (forn) =>
-      forn.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      forn.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
       forn.cnpj.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (forn.cidade &&
         forn.cidade.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -289,7 +289,7 @@ const Fornecedores = () => {
                       <TableRow key={forn.id} className="hover:bg-muted/50">
                         <TableCell>
                           <div>
-                            <p className="font-medium">{forn.nome}</p>
+                            <p className="font-medium">{forn.razao_social}</p>
                             <p className="text-sm text-muted-foreground">
                               {forn.cnpj}
                             </p>
@@ -320,22 +320,22 @@ const Fornecedores = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {forn.grupos_mercadoria
+                            {/* {forn.grupo_mercadoria
                               .slice(0, 2)
-                              .map((grupo, index) => (
-                                <Badge
-                                  key={index}
-                                  variant="secondary"
-                                  className="text-xs"
-                                >
-                                  {grupo}
-                                </Badge>
-                              ))}
-                            {forn.grupos_mercadoria.length > 2 && (
+                              .map((grupo, index) => ( */}
+                            <Badge
+                              // key={index}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {forn.grupo_mercadoria}
+                            </Badge>
+                            {/* ))} */}
+                            {/* {forn.grupo_mercadoria.length > 2 && (
                               <Badge variant="outline" className="text-xs">
-                                +{forn.grupos_mercadoria.length - 2}
+                                +{forn.grupo_mercadoria.length - 2}
                               </Badge>
-                            )}
+                            )} */}
                           </div>
                         </TableCell>
                         <TableCell>

@@ -193,7 +193,7 @@ const PainelFornecedor = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label className="text-sm text-muted-foreground">Empresa</Label>
-                <p className="font-medium">{cotacao.fornecedor.nome}</p>
+                <p className="font-medium">{cotacao.fornecedor.razao_social}</p>
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">CNPJ</Label>
