@@ -7,8 +7,21 @@ import {
   Calendar,
   ChartNoAxesColumn,
 } from "lucide-react";
+import CotacoesTable from "@/components/cotacoes/CotacoesTable";
+import { useCotacoes } from "@/hooks/useCotacoes";
+import { CotacaoCompleta } from "@/types/cotacoes";
+import { useState } from "react";
+import EnviarConvitesModal from "@/components/cotacoes/EnviarConvitesModal";
 
 const Dashboard = () => {
+  const { data: cotacoes = [], isLoading, error } = useCotacoes();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedCotacao, setSelectedCotacao] =
+    useState<CotacaoCompleta | null>(null);
+  const handleEnviarConvites = (cotacao: CotacaoCompleta) => {
+    setSelectedCotacao(cotacao);
+    setDialogOpen(true);
+  };
   const stats = [
     {
       title: "Fornecedores",
@@ -93,7 +106,10 @@ const Dashboard = () => {
                   </Button>
                 </div>
                 <div className="flex gap-1 justify-end">
-                  <Calendar className="text-black/50" style={{width: '1rem'}}/>
+                  <Calendar
+                    className="text-black/50"
+                    style={{ width: "1rem" }}
+                  />
                   <p className="text-muted-foreground">Julho 2025</p>
                 </div>
               </div>
@@ -129,7 +145,18 @@ const Dashboard = () => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8"></div>
+      <div className="">
+        <CotacoesTable
+          cotacoes={cotacoes}
+          onEnviarConvites={handleEnviarConvites}
+          isLoading={isLoading}
+        />
+      </div>
+      <EnviarConvitesModal
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        cotacao={selectedCotacao}
+      />
     </div>
   );
 };
