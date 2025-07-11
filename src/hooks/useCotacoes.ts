@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Cotacao, CotacaoCompleta } from '@/types/cotacoes';
+import type { Cotacao } from '@/types/cotacoes';
 
 export const useCotacoes = () => {
   return useQuery({
@@ -15,7 +15,7 @@ export const useCotacoes = () => {
             status_resposta,
             data_convite,
             data_visualizacao,
-            fornecedores(id, nome, email)
+            fornecedores(id, razao_social, email)
           ),
           cotacao_itens(
             id,
@@ -48,7 +48,7 @@ export const useCotacao = (id: string) => {
             data_convite,
             data_visualizacao,
             token_acesso,
-            fornecedores(id, nome, email, cnpj, telefone)
+            fornecedores(id, razao_social, email, cnpj, telefone)
           ),
           cotacao_itens(
             id,
