@@ -1,71 +1,112 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Building, Star, Mail, Phone, Filter, MapPin, Upload, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
-import ImportarFornecedores from "@/components/ImportarFornecedores";
-import { toast } from "@/hooks/use-toast";
-import { useFornecedores, useCreateFornecedor } from "@/hooks/useFornecedores";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Plus,
+  Search,
+  Building,
+  Star,
+  Mail,
+  Phone,
+  Filter,
+  MapPin,
+  Upload,
+  Loader2,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import ImportarFornecedores from '@/components/ImportarFornecedores';
+import { toast } from '@/hooks/use-toast';
+import {
+  useFornecedores,
+  useCreateFornecedor,
+  useCreateManyFornecedor,
+} from '@/hooks/useFornecedores';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 const Fornecedores = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [mostrarImportacao, setMostrarImportacao] = useState(false);
-  const { data: fornecedores = [], isLoading, error } = useFornecedores();
-  const createFornecedor = useCreateFornecedor();
+  // const { data: fornecedores = [], isLoading, error } = useFornecedores();
+  const [fornecedores, setFornecedores] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  if (error) {
-    toast({
-      title: "Erro ao carregar fornecedores",
-      description: "Não foi possível carregar os fornecedores. Tente novamente.",
-      variant: "destructive",
-    });
-  }
+  const createFornecedor = useCreateFornecedor();
+  const createManyFornecedor = useCreateManyFornecedor();
+
+  // if (error) {
+  //   toast({
+  //     title: 'Erro ao carregar fornecedores',
+  //     description:
+  //       'Não foi possível carregar os fornecedores. Tente novamente.',
+  //     variant: 'destructive',
+  //   });
+  // }
 
   const handleImport = async (fornecedoresImportados: any[]) => {
     try {
-      for (const forn of fornecedoresImportados) {
-        await createFornecedor.mutateAsync({
-          nome: forn.razaoSocial,
-          cnpj: forn.cnpj,
-          email: forn.email,
-          telefone: forn.telefone || "",
-          endereco: forn.endereco || "",
-          cidade: forn.cidade || "Não informado",
-          estado: forn.uf,
-          cep: forn.cep || "",
-          grupos_mercadoria: [forn.grupoMaterial],
-          avaliacao: 0,
-          status: "ativo",
-          observacoes: "",
-        });
-      }
-      
+      console.log('importar :', fornecedoresImportados);
+
+      //  here we get the fornecedores from the array of files, separate the data and join in one array
+      const fornecedores = fornecedoresImportados
+        .map((file) => file.data)
+        .flat();
+
+      console.log('fornecedores:', fornecedores);
+
+      createManyFornecedor.mutate(fornecedores);
+
       toast({
-        title: "Fornecedores importados",
+        title: 'Fornecedores importados',
         description: `${fornecedoresImportados.length} fornecedores foram importados com sucesso.`,
       });
-      
-      setMostrarImportacao(false);
+
+      // setMostrarImportacao(false);
     } catch (error) {
       toast({
-        title: "Erro na importação",
-        description: "Não foi possível importar os fornecedores. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro na importação',
+        description:
+          'Não foi possível importar os fornecedores. Tente novamente.',
+        variant: 'destructive',
       });
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "ativo":
-        return <Badge variant="outline" className="bg-success/10 text-success border-success">Ativo</Badge>;
-      case "pendente":
-        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning">Pendente</Badge>;
-      case "inativo":
-        return <Badge variant="outline" className="bg-muted text-muted-foreground">Inativo</Badge>;
+      case 'ativo':
+        return (
+          <Badge
+            variant="outline"
+            className="bg-success/10 text-success border-success"
+          >
+            Ativo
+          </Badge>
+        );
+      case 'pendente':
+        return (
+          <Badge
+            variant="outline"
+            className="bg-warning/10 text-warning border-warning"
+          >
+            Pendente
+          </Badge>
+        );
+      case 'inativo':
+        return (
+          <Badge variant="outline" className="bg-muted text-muted-foreground">
+            Inativo
+          </Badge>
+        );
       default:
         return <Badge variant="outline">Desconhecido</Badge>;
     }
@@ -77,8 +118,8 @@ const Fornecedores = () => {
         key={i}
         className={`h-4 w-4 ${
           i < Math.floor(rating)
-            ? "text-warning fill-warning"
-            : "text-muted-foreground"
+            ? 'text-warning fill-warning'
+            : 'text-muted-foreground'
         }`}
       />
     ));
@@ -88,8 +129,11 @@ const Fornecedores = () => {
     (forn) =>
       forn.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       forn.cnpj.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (forn.cidade && forn.cidade.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      forn.grupos_mercadoria.some(grupo => grupo.toLowerCase().includes(searchTerm.toLowerCase()))
+      (forn.cidade &&
+        forn.cidade.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      forn.grupos_mercadoria.some((grupo) =>
+        grupo.toLowerCase().includes(searchTerm.toLowerCase())
+      )
   );
 
   return (
@@ -107,14 +151,25 @@ const Fornecedores = () => {
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => setMostrarImportacao(true)}
-            className="flex items-center gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Importar
-          </Button>
+          <Dialog>
+            <DialogTrigger>
+              <Button
+                type="button"
+                variant="outline"
+                // onClick={() => setMostrarImportacao(true)}
+                className="flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Importar
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-5xl h-[90vh] overflow-y-auto">
+              <ImportarFornecedores
+                // onClose={() => setMostrarImportacao(false)}
+                handleImport={handleImport}
+              />
+            </DialogContent>
+          </Dialog>
           <Link to="/fornecedores/novo">
             <Button className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
               <Plus className="h-4 w-4" />
@@ -161,7 +216,7 @@ const Fornecedores = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Ativos</p>
                 <p className="text-xl font-bold">
-                  {fornecedores.filter(f => f.status === "ativo").length}
+                  {fornecedores.filter((f) => f.status === 'ativo').length}
                 </p>
               </div>
             </div>
@@ -174,7 +229,7 @@ const Fornecedores = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Pendentes</p>
                 <p className="text-xl font-bold">
-                  {fornecedores.filter(f => f.status === "pendente").length}
+                  {fornecedores.filter((f) => f.status === 'pendente').length}
                 </p>
               </div>
             </div>
@@ -222,7 +277,10 @@ const Fornecedores = () => {
                 <TableBody>
                   {filteredFornecedores.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-8 text-muted-foreground"
+                      >
                         Nenhum fornecedor encontrado
                       </TableCell>
                     </TableRow>
@@ -232,7 +290,9 @@ const Fornecedores = () => {
                         <TableCell>
                           <div>
                             <p className="font-medium">{forn.nome}</p>
-                            <p className="text-sm text-muted-foreground">{forn.cnpj}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {forn.cnpj}
+                            </p>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -253,17 +313,24 @@ const Fornecedores = () => {
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3 text-muted-foreground" />
                             <span className="text-sm">
-                              {forn.cidade ? `${forn.cidade}, ` : ""}{forn.estado}
+                              {forn.cidade ? `${forn.cidade}, ` : ''}
+                              {forn.estado}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {forn.grupos_mercadoria.slice(0, 2).map((grupo, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {grupo}
-                              </Badge>
-                            ))}
+                            {forn.grupos_mercadoria
+                              .slice(0, 2)
+                              .map((grupo, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {grupo}
+                                </Badge>
+                              ))}
                             {forn.grupos_mercadoria.length > 2 && (
                               <Badge variant="outline" className="text-xs">
                                 +{forn.grupos_mercadoria.length - 2}
@@ -273,7 +340,9 @@ const Fornecedores = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <div className="flex">{renderStars(forn.avaliacao || 0)}</div>
+                            <div className="flex">
+                              {renderStars(forn.avaliacao || 0)}
+                            </div>
                             <span className="text-sm text-muted-foreground ml-1">
                               {forn.avaliacao || 0}
                             </span>
@@ -281,7 +350,9 @@ const Fornecedores = () => {
                         </TableCell>
                         <TableCell>{getStatusBadge(forn.status)}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {new Date(forn.created_at).toLocaleDateString('pt-BR')}
+                          {new Date(forn.created_at).toLocaleDateString(
+                            'pt-BR'
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
@@ -302,14 +373,6 @@ const Fornecedores = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Modal de Importação */}
-      {mostrarImportacao && (
-        <ImportarFornecedores
-          onClose={() => setMostrarImportacao(false)}
-          onImport={handleImport}
-        />
-      )}
     </div>
   );
 };

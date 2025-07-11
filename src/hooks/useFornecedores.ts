@@ -24,14 +24,39 @@ export const useFornecedores = () => {
 
 export const useCreateFornecedor = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (fornecedor: Omit<Fornecedor, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (
+      fornecedor: Omit<Fornecedor, 'id' | 'created_at' | 'updated_at'>
+    ) => {
       const { data, error } = await supabase
         .from('fornecedores')
         .insert(fornecedor)
         .select()
         .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fornecedores'] });
+    },
+  });
+};
+export const useCreateManyFornecedor = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      fornecedores: Omit<Fornecedor, 'id' | 'created_at' | 'updated_at'>[]
+    ) => {
+      const { data, error } = await supabase
+        .from('fornecedores')
+        .insert(fornecedores)
+        .select();
 
       if (error) {
         throw error;
