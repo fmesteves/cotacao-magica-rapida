@@ -24,7 +24,7 @@ const Requisicoes = () => {
   const filteredRequisicoes = filterRequisicoes(requisicoes, searchTerm);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col h-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -52,7 +52,7 @@ const Requisicoes = () => {
         </div>
       </div>
 
-      <div className='rounded-lg'>
+      <div className='rounded-lg h-full'>
         {/* Filters */}
         <RequisicaoFilters
           searchTerm={searchTerm}

@@ -38,7 +38,7 @@ export const RequisicaoTable = ({
         const rowHeight = row.clientHeight;
 
         if (rowHeight > 0) {
-          const visibleRows = Math.floor((containerHeight - 50) / rowHeight);
+          const visibleRows = Math.floor((containerHeight - 150) / rowHeight);
           setItemsPerPage(visibleRows || 1);
         }
       }
@@ -65,8 +65,14 @@ export const RequisicaoTable = ({
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   return (
-    <Card className="shadow-soft" style={{ border: "none", borderRadius: 0 }}>
-      <CardContent>
+    <Card
+      className="shadow-soft "
+      style={{ border: "none", borderRadius: 0, height: "calc(100% - 80px)" }}
+    >
+      <CardContent
+        ref={containerRef}
+        className="h-full flex flex-col justify-between"
+      >
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -74,11 +80,7 @@ export const RequisicaoTable = ({
           </div>
         ) : (
           <>
-            <div
-              ref={containerRef}
-              className="overflow-y-auto"
-              style={{ maxHeight: "calc(100vh - 400px)" }}
-            >
+            <div className="overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

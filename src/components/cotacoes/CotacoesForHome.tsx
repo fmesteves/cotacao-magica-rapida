@@ -1,15 +1,36 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useEffect, useRef, useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Mail, Eye, Calendar, Users } from "lucide-react";
+import {
+  Mail,
+  Eye,
+  Calendar,
+  Users,
+  BarChart,
+  ChartColumn,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getStatusColor, getStatusText, getProgressColor, calcularDiasRestantes, calcularPercentualRespostas } from "@/utils/cotacoes";
+import {
+  getStatusColor,
+  getStatusText,
+  calcularDiasRestantes,
+  calcularPercentualRespostas,
+} from "@/utils/cotacoes";
 import type { CotacaoCompleta } from "@/types/cotacoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Link } from "react-router-dom";
 
 interface CotacoesTableProps {
   cotacoes: CotacaoCompleta[];
@@ -17,7 +38,40 @@ interface CotacoesTableProps {
   isLoading?: boolean;
 }
 
-const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableProps) => {
+const CotacoesForHome = ({
+  cotacoes,
+  onEnviarConvites,
+  isLoading,
+}: CotacoesTableProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLTableRowElement>(null);
+
+  const [itemsVisible, setItemsVisible] = useState(5);
+
+  useEffect(() => {
+    const calcularItemsVisiveis = () => {
+      const container = containerRef.current;
+      const row = rowRef.current;
+      if (container && row) {
+        const alturaContainer = container.clientHeight;
+        const alturaLinha = row.clientHeight;
+        if (alturaLinha > 0) {
+          const visiveis = Math.floor((alturaContainer - 50) / alturaLinha);
+          setItemsVisible(visiveis || 1);
+        }
+      }
+    };
+
+    calcularItemsVisiveis();
+
+    const resizeObserver = new ResizeObserver(calcularItemsVisiveis);
+    if (containerRef.current) resizeObserver.observe(containerRef.current);
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  const cotacoesVisiveis = cotacoes.slice(0, itemsVisible);
+
   if (isLoading) {
     return (
       <Card className="shadow-soft">
@@ -31,10 +85,29 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
       </Card>
     );
   }
+
   return (
-    <Card className="shadow-soft">
+    <Card className="shadow-soft h-full">
       <CardContent className="p-6">
-        <div className="overflow-x-auto">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex gap-3 items-center">
+            <ChartColumn className="text-blue-600" />
+            <p className="text-2xl font-bold">Cotações</p>
+          </div>
+          {cotacoes.length > itemsVisible && (
+            <Link to={"/cotacoes"}>
+              <Button size="sm">Ver todas</Button>
+            </Link>
+          )}
+        </div>
+        <div
+          ref={containerRef}
+          className="
+    overflow-y-auto
+    max-h-[calc(100vh-700px)]
+    lg:max-h-[calc(100vh-600px)]
+  "
+        >
           <Table>
             <TableHeader>
               <TableRow>
@@ -48,8 +121,12 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
               </TableRow>
             </TableHeader>
             <TableBody>
-              {cotacoes.map((cotacao) => (
-                <TableRow key={cotacao.id} className="hover:bg-muted/50">
+              {cotacoesVisiveis.map((cotacao, index) => (
+                <TableRow
+                  key={cotacao.id}
+                  ref={index === 0 ? rowRef : null}
+                  className="hover:bg-muted/50"
+                >
                   <TableCell>
                     <div>
                       <p className="font-medium">{cotacao.numero_cotacao}</p>
@@ -60,7 +137,9 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                   </TableCell>
                   <TableCell>
                     <p className="font-medium">{cotacao.descricao}</p>
-                    <p className="text-sm text-muted-foreground">{cotacao.solicitante}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {cotacao.solicitante}
+                    </p>
                   </TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(cotacao.status as any)}>
@@ -71,7 +150,11 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {cotacao.data_envio ? format(new Date(cotacao.data_envio), "dd/MM/yyyy", { locale: ptBR }) : "-"}
+                        {cotacao.data_envio
+                          ? format(new Date(cotacao.data_envio), "dd/MM/yyyy", {
+                              locale: ptBR,
+                            })
+                          : "-"}
                       </span>
                     </div>
                   </TableCell>
@@ -81,7 +164,13 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                         {calcularDiasRestantes(cotacao.prazo_vencimento)} dias
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        ({format(new Date(cotacao.prazo_vencimento), "dd/MM/yyyy", { locale: ptBR })})
+                        (
+                        {format(
+                          new Date(cotacao.prazo_vencimento),
+                          "dd/MM/yyyy",
+                          { locale: ptBR }
+                        )}
+                        )
                       </span>
                     </div>
                   </TableCell>
@@ -89,16 +178,20 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{cotacao.cotacao_fornecedores?.length || 0}</span>
+                        <span className="text-sm">
+                          {cotacao.cotacao_fornecedores?.length || 0}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Progress 
-                          value={calcularPercentualRespostas(cotacao)} 
-                          className="w-16 h-2" 
+                        <Progress
+                          value={calcularPercentualRespostas(cotacao)}
+                          className="w-16 h-2"
                         />
                         <span className="text-xs text-muted-foreground">
-                          {cotacao.cotacao_fornecedores?.filter(cf => cf.status_resposta === 'respondido').length || 0}/
-                          {cotacao.cotacao_fornecedores?.length || 0}
+                          {cotacao.cotacao_fornecedores?.filter(
+                            (cf) => cf.status_resposta === "respondido"
+                          ).length || 0}
+                          /{cotacao.cotacao_fornecedores?.length || 0}
                         </span>
                       </div>
                     </div>
@@ -108,8 +201,8 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                       <Button size="sm" variant="outline">
                         <Eye className="h-3 w-3" />
                       </Button>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
                         onClick={() => onEnviarConvites(cotacao)}
                         disabled={!cotacao.cotacao_fornecedores?.length}
@@ -128,4 +221,4 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
   );
 };
 
-export default CotacoesTable;
+export default CotacoesForHome;

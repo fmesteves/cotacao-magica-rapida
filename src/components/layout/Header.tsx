@@ -45,7 +45,7 @@ const Header = ({ collapsed, setCollapsed }: HeaderProps) => {
   return (
     <>
       {/* Top Bar fixa no topo */}
-      <div className="fixed top-0 left-0 right-0 h-16 bg-blue-900 z-50 border-b-2 border-white/50 flex items-center px-4 justify-start gap-6 pl-0">
+      <div className="fixed top-0 left-0 right-0 h-16 bg-blue-900 z-50 flex items-center px-4 justify-start gap-6 pl-0">
         <div className="flex gap-5 border-r border-white/50 w-64 box-border px-4 h-full items-center justify-between">
           <h1 className="text-xl font-bold text-primary-foreground whitespace-nowrap">
             Cota System
