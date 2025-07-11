@@ -10,7 +10,7 @@ interface RequisicaoFiltersProps {
 
 export const RequisicaoFilters = ({ searchTerm, onSearchChange }: RequisicaoFiltersProps) => {
   return (
-    <Card className="shadow-soft">
+    <Card className="shadow-soft" style={{border: 'none', borderRadius: 0}}>
       <CardContent className="p-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
