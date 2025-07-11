@@ -11,7 +11,7 @@ export const useFornecedores = () => {
       const { data, error } = await supabase
         .from('fornecedores')
         .select('*')
-        .order('nome', { ascending: true });
+        .order('razao_social', { ascending: true });
 
       if (error) {
         throw error;
