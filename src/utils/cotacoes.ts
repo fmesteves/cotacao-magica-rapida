@@ -47,7 +47,7 @@ export const getProgressColor = (percentage: number) => {
 };
 
 export const gerarLinkUnico = (token: string) => {
-  return `${window.location.origin}/cotacao/${token}`;
+  return `${import.meta.env.VITE_BASE_URL}/cotacao/${token}`;
 };
 
 export const filterCotacoes = (cotacoes: CotacaoCompleta[], searchTerm: string) => {

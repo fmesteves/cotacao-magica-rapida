@@ -11,7 +11,7 @@ import { Building, Calendar, Clock, FileText, Send } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const PainelFornecedor = () => {
-  const { token } = useParams();
+  const { cotacaoId, fornecedorId } = useParams();
   const [cotacao, setCotacao] = useState<any>(null);
   const [valores, setValores] = useState<{ [key: string]: string }>({});
   const [observacoes, setObservacoes] = useState("");
@@ -60,7 +60,7 @@ const PainelFornecedor = () => {
     };
 
     setCotacao(mockCotacao);
-  }, [token]);
+  }, [cotacaoId, fornecedorId]);
 
   const handleValorChange = (itemId: string, valor: string) => {
     setValores(prev => ({

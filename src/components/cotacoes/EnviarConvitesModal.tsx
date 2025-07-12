@@ -3,10 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Mail } from "lucide-react";
+import { Copy, Mail, Loader2 } from "lucide-react";
 import type { CotacaoCompleta } from "@/types/cotacoes";
 import { gerarLinkUnico } from "@/utils/cotacoes";
 import { toast } from "@/hooks/use-toast";
+import { useEmailService } from "@/hooks/useEmailService";
 
 interface EnviarConvitesModalProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface EnviarConvitesModalProps {
 
 const EnviarConvitesModal = ({ open, onOpenChange, cotacao }: EnviarConvitesModalProps) => {
   const [emailText, setEmailText] = useState("");
+  const { sendCotacaoEmail, isLoading, lastResponse } = useEmailService();
 
   useEffect(() => {
     if (cotacao) {
@@ -49,13 +51,50 @@ Equipe de Compras`);
     }
   };
 
-  const enviarEmail = () => {
-    // Simular envio de email
-    toast({
-      title: "Convites enviados!",
-      description: "Os emails foram enviados para os fornecedores selecionados.",
-    });
-    onOpenChange(false);
+  const enviarEmail = async () => {
+    const cotacao_fornecedores = cotacao?.cotacao_fornecedores;
+    if (!cotacao || cotacao_fornecedores?.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Nenhum fornecedor encontrado para enviar os convites.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      
+      // Envia email para cada fornecedor selecionado
+      for (const cotacao_fornecedor of cotacao_fornecedores) {
+        await sendCotacaoEmail({
+          fornecedorEmail: cotacao_fornecedor.fornecedores?.email,
+          fornecedorNome: cotacao_fornecedor.fornecedores?.razao_social, // Você pode personalizar isso
+          cotacaoData: {
+            descricao: cotacao.descricao,
+            data: new Date(cotacao.data_criacao).toLocaleDateString('pt-BR'),
+            link: gerarLinkUnico(`${cotacao.id}/${cotacao_fornecedor.fornecedores?.id}`),
+            prazoEstimado: cotacao.prazo_vencimento ? new Date(cotacao.prazo_vencimento).toLocaleDateString('pt-BR') : undefined,
+            observacoes: cotacao.observacoes
+          },
+          empresaConfig: {
+            nome: "Cotação Mágica Rápida",
+            logo: "/logo.png" // Adicione o caminho do seu logo
+          }
+        });
+      }
+
+      toast({
+        title: "Convites enviados!",
+        description: `Os emails foram enviados para ${cotacao_fornecedores.length} fornecedor(es).`,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Erro ao enviar emails",
+        description: "Ocorreu um erro ao enviar os convites. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!cotacao) return null;
@@ -104,9 +143,17 @@ Equipe de Compras`);
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button onClick={enviarEmail} className="bg-gradient-primary hover:opacity-90">
-                <Mail className="h-4 w-4 mr-2" />
-                Enviar E-mails
+              <Button 
+                onClick={enviarEmail} 
+                className="bg-gradient-primary hover:opacity-90"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2" />
+                )}
+                {isLoading ? 'Enviando...' : 'Enviar E-mails'}
               </Button>
             </div>
           </div>

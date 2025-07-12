@@ -161,7 +161,7 @@ export type Database = {
           estado: string
           grupos_mercadoria: string[]
           id: string
-          nome: string
+          razao_social: string
           observacoes: string | null
           status: string
           telefone: string | null
