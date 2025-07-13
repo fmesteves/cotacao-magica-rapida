@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Upload } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plus, Link, Upload } from 'lucide-react';
 import { useRequisicoes } from '@/hooks/useRequisicoes';
 import { toast } from '@/hooks/use-toast';
-import { RequisicaoStats } from '@/components/requisicoes/RequisicaoStats';
 import { RequisicaoFilters } from '@/components/requisicoes/RequisicaoFilters';
 import { RequisicaoTable } from '@/components/requisicoes/RequisicaoTable';
 import { filterRequisicoes } from '@/utils/requisicoes';
-import { Dialog, DialogTitle, DialogHeader, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogTitle,
+  DialogHeader,
+  DialogContent,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import ExcelUploadComponent from '@/components/uploadRCComponent';
 
 const Requisicoes = () => {
@@ -26,16 +30,13 @@ const Requisicoes = () => {
   const filteredRequisicoes = filterRequisicoes(requisicoes, searchTerm);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col h-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             Requisições de Compra
           </h1>
-          <p className="text-muted-foreground">
-            Gerencie e importe requisições de compra
-          </p>
         </div>
         <div className="flex gap-3 mt-4 sm:mt-0">
           <Link to="/requisicoes/nova">
@@ -47,20 +48,19 @@ const Requisicoes = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <RequisicaoFilters
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-      />
+      <div className="rounded-lg h-full">
+        {/* Filters */}
+        <RequisicaoFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
 
-      {/* Stats */}
-      <RequisicaoStats requisicoes={requisicoes} />
-
-      {/* Table */}
-      <RequisicaoTable
-        requisicoes={filteredRequisicoes}
-        isLoading={isLoading}
-      />
+        {/* Table */}
+        <RequisicaoTable
+          requisicoes={filteredRequisicoes}
+          isLoading={isLoading}
+        />
+      </div>
     </div>
   );
 };

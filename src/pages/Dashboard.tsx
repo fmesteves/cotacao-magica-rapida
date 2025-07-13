@@ -12,6 +12,7 @@ import { useCotacoes } from "@/hooks/useCotacoes";
 import { CotacaoCompleta } from "@/types/cotacoes";
 import { useState } from "react";
 import EnviarConvitesModal from "@/components/cotacoes/EnviarConvitesModal";
+import CotacoesForHome from "@/components/cotacoes/CotacoesForHome";
 
 const Dashboard = () => {
   const { data: cotacoes = [], isLoading, error } = useCotacoes();
@@ -53,7 +54,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 flex flex-col" style={{maxHeight: 'calc(100vh - 125px)'}}>
       {/* Header */}
       <div className="border border-black/10 px-5 py-10 rounded-md flex items-center justify-between gap-16 w-fit ml-auto mr-auto">
         <Button className="rounded-2xl">
@@ -144,14 +145,11 @@ const Dashboard = () => {
           );
         })}
       </div>
-
-      <div className="">
-        <CotacoesTable
+        <CotacoesForHome
           cotacoes={cotacoes}
           onEnviarConvites={handleEnviarConvites}
           isLoading={isLoading}
         />
-      </div>
       <EnviarConvitesModal
         open={dialogOpen}
         onOpenChange={setDialogOpen}
