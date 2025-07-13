@@ -31,7 +31,7 @@ const App = () => (
             <Route path="/fornecedores/novo" element={<NovoFornecedor />} />
             <Route path="/cotacoes" element={<Cotacoes />} />
             <Route path="/cotacoes/nova" element={<NovaCotacao />} />
-            <Route path="/cotacao/:token" element={<PainelFornecedor />} />
+            <Route path="/cotacao/:cotacaoId/:fornecedorId" element={<PainelFornecedor />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
