@@ -1,395 +1,374 @@
-import { useState, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
-import { Upload, Download, AlertCircle, CheckCircle, FileSpreadsheet, X } from "lucide-react";
+import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
+import {
+  Upload,
+  FileSpreadsheet,
+  Check,
+  X,
+  Download,
+  Trash2,
+  Eye,
+  EyeOff,
+  Building2,
+} from 'lucide-react';
+import { Button } from './ui/button';
 
-interface FornecedorImportado {
-  razaoSocial: string;
-  cnpj: string;
-  email: string;
-  uf: string;
-  codigoInterno: string;
-  grupoMaterial: string;
-  linha: number;
-  status: 'sucesso' | 'erro';
-  erro?: string;
-}
+const SupplierExcelUploadComponent = ({
+  handleImport,
+}: {
+  handleImport: (fornecedoresImportados: any[]) => void;
+}) => {
+  const [files, setFiles] = useState([]);
+  const [processedFiles, setProcessedFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [expandedFiles, setExpandedFiles] = useState(new Set());
 
-interface ImportarFornecedoresProps {
-  onClose: () => void;
-  onImport: (fornecedores: any[]) => void;
-}
+  const handleFileChange = (event) => {
+    const selectedFiles = Array.from(event.target.files);
 
-const estadosBrasil = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", 
-  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", 
-  "RS", "RO", "RR", "SC", "SP", "SE", "TO"
-];
+    const validFiles = selectedFiles.filter((file) => {
+      const validTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'application/vnd.ms-excel.sheet.macroEnabled.12',
+      ];
 
-const gruposMaterial = [
-  "Material de Escritório",
-  "Equipamentos",
-  "Ferramentas", 
-  "Material Elétrico",
-  "Tecnologia",
-  "Material Gráfico",
-  "Impressos",
-  "Materiais de Construção",
-  "Mobiliário",
-  "Uniformes e EPIs"
-];
-
-const ImportarFornecedores = ({ onClose, onImport }: ImportarFornecedoresProps) => {
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [dadosImportacao, setDadosImportacao] = useState<FornecedorImportado[]>([]);
-  const [processando, setProcessando] = useState(false);
-  const [progresso, setProgresso] = useState(0);
-  const [etapa, setEtapa] = useState<'upload' | 'preview' | 'resultado'>('upload');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const validarCNPJ = (cnpj: string): boolean => {
-    const cnpjRegex = /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/;
-    return cnpjRegex.test(cnpj);
-  };
-
-  const validarEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validarLinha = (linha: any, numeroLinha: number): FornecedorImportado => {
-    const fornecedor: FornecedorImportado = {
-      razaoSocial: linha['Razão social'] || linha['razao_social'] || '',
-      cnpj: linha['CNPJ'] || linha['cnpj'] || '',
-      email: linha['Email'] || linha['email'] || '',
-      uf: linha['UF'] || linha['uf'] || '',
-      codigoInterno: linha['Código interno'] || linha['codigo_interno'] || '',
-      grupoMaterial: linha['Grupo de material'] || linha['grupo_material'] || '',
-      linha: numeroLinha,
-      status: 'sucesso'
-    };
-
-    const erros: string[] = [];
-
-    if (!fornecedor.razaoSocial.trim()) {
-      erros.push('Razão social é obrigatória');
-    }
-
-    if (!fornecedor.cnpj.trim()) {
-      erros.push('CNPJ é obrigatório');
-    } else if (!validarCNPJ(fornecedor.cnpj)) {
-      erros.push('CNPJ deve estar no formato XX.XXX.XXX/XXXX-XX');
-    }
-
-    if (!fornecedor.email.trim()) {
-      erros.push('Email é obrigatório');
-    } else if (!validarEmail(fornecedor.email)) {
-      erros.push('Email inválido');
-    }
-
-    if (!fornecedor.uf.trim()) {
-      erros.push('UF é obrigatória');
-    } else if (!estadosBrasil.includes(fornecedor.uf)) {
-      erros.push('UF deve ser um estado brasileiro válido');
-    }
-
-    if (!fornecedor.codigoInterno.trim()) {
-      erros.push('Código interno é obrigatório');
-    }
-
-    if (!fornecedor.grupoMaterial.trim()) {
-      erros.push('Grupo de material é obrigatório');
-    } else if (!gruposMaterial.includes(fornecedor.grupoMaterial)) {
-      erros.push('Grupo de material deve ser um dos valores válidos');
-    }
-
-    if (erros.length > 0) {
-      fornecedor.status = 'erro';
-      fornecedor.erro = erros.join(', ');
-    }
-
-    return fornecedor;
-  };
-
-  const processarArquivo = async (file: File) => {
-    setProcessando(true);
-    setProgresso(0);
-
-    try {
-      const dados = await lerArquivo(file);
-      setProgresso(50);
-
-      const fornecedoresValidados = dados.map((linha, index) => 
-        validarLinha(linha, index + 2) // +2 porque a linha 1 é o cabeçalho
+      return (
+        validTypes.includes(file.type) ||
+        file.name.endsWith('.xlsx') ||
+        file.name.endsWith('.xls')
       );
+    });
 
-      setDadosImportacao(fornecedoresValidados);
-      setProgresso(100);
-      setEtapa('preview');
+    if (validFiles.length !== selectedFiles.length) {
+      setError(
+        `${
+          selectedFiles.length - validFiles.length
+        } file(s) were skipped. Please select only Excel files (.xlsx or .xls)`
+      );
+    } else {
+      setError('');
+    }
 
-      toast({
-        title: "Arquivo processado com sucesso!",
-        description: `${fornecedoresValidados.length} linhas processadas.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao processar arquivo",
-        description: "Verifique se o arquivo está no formato correto.",
-        variant: "destructive",
-      });
-    } finally {
-      setProcessando(false);
+    if (validFiles.length > 0) {
+      setFiles((prev) => [...prev, ...validFiles]);
+      setSuccess(false);
+      processAllFiles(validFiles);
     }
   };
 
-  const lerArquivo = (file: File): Promise<any[]> => {
+  const removeFile = (indexToRemove) => {
+    setFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
+    setProcessedFiles((prev) =>
+      prev.filter((_, index) => index !== indexToRemove)
+    );
+
+    // Remove from expanded files if it was expanded
+    setExpandedFiles((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(indexToRemove);
+      // Adjust indices for remaining files
+      const adjustedSet = new Set();
+      newSet.forEach((index) => {
+        if (index > indexToRemove) {
+          adjustedSet.add(index - 1);
+        } else if (index < indexToRemove) {
+          adjustedSet.add(index);
+        }
+      });
+      return adjustedSet;
+    });
+  };
+
+
+  // here i need to avoid the field when its: "": "
+  const processExcelFile = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
       reader.onload = (e) => {
         try {
-          const data = e.target?.result;
-          const workbook = XLSX.read(data, { type: 'binary' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
-          resolve(jsonData);
-        } catch (error) {
-          reject(error);
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          // Get the first worksheet
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // Convert to JSON with header row
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+            header: 1,
+            defval: '',
+            blankrows: false
+          });
+          
+          if (jsonData.length > 0) {
+            // Get headers from first row
+            const headers = jsonData[0];
+            
+            // Convert rows to objects
+            const processedData = jsonData.slice(1).map(row => {
+              const obj = {};
+              headers.forEach((header, index) => {
+                // Clean header names and handle special cases
+                const cleanHeader = header.toString().trim();
+                
+                // Map specific headers to match supplier data structure
+                const headerMapping = {
+                  'RAZAO_SOCIAL': 'razao_social',
+                  'RAZÃO_SOCIAL': 'razao_social',
+                  'CNPJ': 'cnpj',
+                  'EMAIL': 'email',
+                  'E-MAIL': 'email',
+                  'UF': 'uf',
+                  'COD_SAP': 'cod_sap',
+                  'COD SAP': 'cod_sap',
+                  'CODIGO_SAP': 'cod_sap',
+                  'COD_GRUPO_MERCADORIA': 'cod_grupo_mercadoria',
+                  'COD GRUPO MERCADORIA': 'cod_grupo_mercadoria',
+                  'GRUPO_MERCADORIA': 'grupo_mercadoria',
+                  'GRUPO MERCADORIA': 'grupo_mercadoria',
+                  'FAMILIA': 'familia',
+                  'FAMÍLIA': 'familia'
+                };
+                
+                const mappedHeader = headerMapping[cleanHeader] || cleanHeader.toLowerCase();
+                
+                // Handle different data types
+                let value = row[index] || '';
+                
+                // Convert numeric fields
+                if (['cod_sap'].includes(mappedHeader)) {
+                  value = value ? value.toString().trim() : '';
+                }
+                
+                // Clean CNPJ format
+                if (mappedHeader === 'cnpj' && value) {
+                  value = value.toString().trim();
+                }
+                
+                // Clean email format
+                if (mappedHeader === 'email' && value) {
+                  value = value.toString().trim().toLowerCase();
+                }
+                
+                // Clean UF format
+                if (mappedHeader === 'uf' && value) {
+                  value = value.toString().trim().toUpperCase();
+                }
+                
+                // Clean text fields
+                if (['razao_social', 'grupo_mercadoria', 'familia'].includes(mappedHeader) && value) {
+                  value = value.toString().trim();
+                }
+                
+                // SOLUTION: Only add the property if the value is not empty
+                // if (value !== '' && value !== null && value !== undefined) {
+                  obj[mappedHeader] = value;
+                // }
+              });
+              return obj;
+            });
+            
+            resolve({
+              fileName: file.name,
+              data: processedData,
+              recordCount: processedData.length
+            });
+          } else {
+            reject(new Error('The Excel file appears to be empty'));
+          }
+        } catch (parseError) {
+          reject(new Error('Error parsing Excel file. Please check the file format.'));
         }
       };
-
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
-      reader.readAsBinaryString(file);
-    });
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const allowedTypes = [
-        'text/csv',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      ];
       
-      if (allowedTypes.includes(file.type) || file.name.endsWith('.csv') || file.name.endsWith('.xlsx')) {
-        setArquivo(file);
-        processarArquivo(file);
-      } else {
-        toast({
-          title: "Formato inválido",
-          description: "Selecione um arquivo CSV ou XLSX.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const confirmarImportacao = () => {
-    const fornecedoresSucesso = dadosImportacao.filter(f => f.status === 'sucesso');
-    
-    if (fornecedoresSucesso.length === 0) {
-      toast({
-        title: "Nenhum fornecedor válido",
-        description: "Corrija os erros antes de importar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    onImport(fornecedoresSucesso);
-    setEtapa('resultado');
-
-    toast({
-      title: "Importação concluída!",
-      description: `${fornecedoresSucesso.length} fornecedores importados com sucesso.`,
+      reader.onerror = () => {
+        reject(new Error('Error reading the file'));
+      };
+      
+      reader.readAsArrayBuffer(file);
     });
   };
 
-  const baixarTemplate = () => {
-    const template = [
-      {
-        'Razão social': 'Exemplo Empresa Ltda',
-        'CNPJ': '12.345.678/0001-90',
-        'Email': 'contato@exemplo.com.br',
-        'UF': 'SP',
-        'Código interno': 'FORN-001',
-        'Grupo de material': 'Material de Escritório'
-      }
-    ];
+  const processAllFiles = async (files: any[]) => {
+    if (files.length === 0) return;
 
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    XLSX.writeFile(wb, 'template_fornecedores.xlsx');
-  };
+    setLoading(true);
+    setError('');
 
-  const reiniciar = () => {
-    setArquivo(null);
-    setDadosImportacao([]);
-    setEtapa('upload');
-    setProgresso(0);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    try {
+      const results = await Promise.all(
+        files.map((file) => processExcelFile(file))
+      );
+
+      setProcessedFiles(results);
+      setSuccess(true);
+      console.log('All processed supplier files:', results);
+    } catch (error) {
+      console.error('File processing error:', error);
+      setError(error.message || 'Error processing files');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fornecedoresSucesso = dadosImportacao.filter(f => f.status === 'sucesso').length;
-  const fornecedoresErro = dadosImportacao.filter(f => f.status === 'erro').length;
+  const toggleFileExpansion = (index) => {
+    setExpandedFiles((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const getTotalRecords = () => {
+    return processedFiles.reduce((total, file) => total + file.recordCount, 0);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Importar Fornecedores
-          </CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-6 overflow-y-auto">
-          {etapa === 'upload' && (
-            <>
-              <div className="space-y-4">
-                <Alert>
-                  <FileSpreadsheet className="h-4 w-4" />
-                  <AlertDescription>
-                    O arquivo deve conter as colunas: <strong>Razão social</strong>, <strong>CNPJ</strong>, <strong>Email</strong>, <strong>UF</strong>, <strong>Código interno</strong> e <strong>Grupo de material</strong>.
-                  </AlertDescription>
-                </Alert>
+    <div className="max-w-full overflow-hidden flex flex-col gap-4">
+      <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+        <Building2 className="text-blue-600" />
+        Importar Fornecedores
+      </h2>
 
-                <div className="flex gap-4">
-                  <Button variant="outline" onClick={baixarTemplate} className="flex items-center gap-2">
-                    <Download className="h-4 w-4" />
-                    Baixar Template
-                  </Button>
-                </div>
+      {/* File Upload Section */}
+      <div className="">
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+          <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <div className="">
+            <label htmlFor="supplier-file-input" className="cursor-pointer">
+              <span className="text-lg font-medium text-gray-700">
+                Escolha arquivos Excel de fornecedores ou arraste e solte
+              </span>
+              <input
+                id="supplier-file-input"
+                type="file"
+                accept=".xlsx,.xls"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </label>
+          </div>
+          <p className="text-sm text-gray-500">
+            Importe dados de fornecedores com as colunas:{'\n'} RAZAO_SOCIAL,
+            CNPJ, EMAIL, UF, COD_SAP, COD_GRUPO_MERCADORIA, GRUPO_MERCADORIA,
+            FAMILIA
+          </p>
+        </div>
+      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="arquivo">Selecionar Arquivo (CSV ou XLSX)</Label>
-                  <Input
-                    ref={fileInputRef}
-                    id="arquivo"
-                    type="file"
-                    accept=".csv,.xlsx,.xls"
-                    onChange={handleFileSelect}
-                    disabled={processando}
-                  />
-                </div>
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
 
-                {processando && (
-                  <div className="space-y-2">
-                    <Label>Processando arquivo...</Label>
-                    <Progress value={progresso} />
+      {/* Processed Files Results */}
+      <div className="flex flex-1 overflow-hidden w-full">
+        {processedFiles.length > 0 && (
+          <div className="flex flex-col flex-1 w-full">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Arquivos Processados ({processedFiles.length})
+            </h3>
+
+            <div className="space-y-4 h-auto overflow-auto w-full">
+              {processedFiles.map((fileData, index) => (
+                <div key={index} className="border rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <h4 className="font-medium text-gray-800">
+                          {fileData.fileName}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {fileData.recordCount} fornecedores
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleFileExpansion(index)}
+                        className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                      >
+                        {expandedFiles.has(index) ? (
+                          <>
+                            <EyeOff className="h-3 w-3" />
+                            Ocultar
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="h-3 w-3" />
+                            Visualizar
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
-            </>
-          )}
 
-          {etapa === 'preview' && (
-            <>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Prévia da Importação</h3>
-                  <div className="flex gap-2">
-                    <Badge variant="outline" className="bg-success/10 text-success border-success">
-                      {fornecedoresSucesso} válidos
-                    </Badge>
-                    {fornecedoresErro > 0 && (
-                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive">
-                        {fornecedoresErro} com erro
-                      </Badge>
-                    )}
-                  </div>
+                  {expandedFiles.has(index) && (
+                    <div className="p-4">
+                      {/* Table Preview */}
+                      <div className="overflow-x-auto border rounded-lg">
+                        <table className="min-w-full bg-white">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              {Object.keys(fileData.data[0] || {}).map(
+                                (key) => (
+                                  <th
+                                    key={key}
+                                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"
+                                  >
+                                    {key}
+                                  </th>
+                                )
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {fileData.data.map((row, rowIndex) => (
+                              <tr key={rowIndex} className="hover:bg-gray-50">
+                                {Object.values(row).map((value, cellIndex) => (
+                                  <td
+                                    key={cellIndex}
+                                    className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 border-b"
+                                  >
+                                    {value?.toString() || ''}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
-                <div className="max-h-96 overflow-y-auto border rounded">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Linha</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Razão Social</TableHead>
-                        <TableHead>CNPJ</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>UF</TableHead>
-                        <TableHead>Código</TableHead>
-                        <TableHead>Grupo</TableHead>
-                        <TableHead>Erro</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {dadosImportacao.map((fornecedor, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{fornecedor.linha}</TableCell>
-                          <TableCell>
-                            {fornecedor.status === 'sucesso' ? (
-                              <CheckCircle className="h-4 w-4 text-success" />
-                            ) : (
-                              <AlertCircle className="h-4 w-4 text-destructive" />
-                            )}
-                          </TableCell>
-                          <TableCell>{fornecedor.razaoSocial}</TableCell>
-                          <TableCell>{fornecedor.cnpj}</TableCell>
-                          <TableCell>{fornecedor.email}</TableCell>
-                          <TableCell>{fornecedor.uf}</TableCell>
-                          <TableCell>{fornecedor.codigoInterno}</TableCell>
-                          <TableCell>{fornecedor.grupoMaterial}</TableCell>
-                          <TableCell className="text-sm text-destructive">
-                            {fornecedor.erro}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                <div className="flex gap-4">
-                  <Button variant="outline" onClick={reiniciar}>
-                    Cancelar
-                  </Button>
-                  <Button 
-                    onClick={confirmarImportacao}
-                    disabled={fornecedoresSucesso === 0}
-                    className="bg-gradient-primary hover:opacity-90"
-                  >
-                    Importar {fornecedoresSucesso} Fornecedores
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-
-          {etapa === 'resultado' && (
-            <>
-              <div className="text-center space-y-4">
-                <CheckCircle className="h-16 w-16 text-success mx-auto" />
-                <h3 className="text-xl font-semibold">Importação Concluída!</h3>
-                <p className="text-muted-foreground">
-                  {fornecedoresSucesso} fornecedores foram importados com sucesso.
-                </p>
-                <Button onClick={onClose} className="bg-gradient-primary hover:opacity-90">
-                  Fechar
-                </Button>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <div className="flex justify-end">
+        <Button
+          disabled={loading || processedFiles.length === 0}
+          onClick={() => handleImport(processedFiles)}
+        >
+          {loading ? 'Importando...' : 'Importar'}
+        </Button>
+      </div>
     </div>
   );
 };
 
-export default ImportarFornecedores;
+export default SupplierExcelUploadComponent;

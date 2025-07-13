@@ -15,7 +15,7 @@ const Layout = ({ children }: LayoutProps) => {
       >
         <Header collapsed={collapsed} setCollapsed={setCollapsed} />
       </aside>
-      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden">
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden mt-16">
         {children}
       </main>
     </div>
