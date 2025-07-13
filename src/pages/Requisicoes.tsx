@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Link, Plus, Upload } from 'lucide-react';
+import { Plus, Link, Upload } from 'lucide-react';
 import { useRequisicoes } from '@/hooks/useRequisicoes';
 import { toast } from '@/hooks/use-toast';
 import { RequisicaoFilters } from '@/components/requisicoes/RequisicaoFilters';
 import { RequisicaoTable } from '@/components/requisicoes/RequisicaoTable';
 import { filterRequisicoes } from '@/utils/requisicoes';
-import { Dialog, DialogTitle, DialogHeader, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogTitle,
+  DialogHeader,
+  DialogContent,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import ExcelUploadComponent from '@/components/uploadRCComponent';
 
 const Requisicoes = () => {
@@ -42,7 +48,7 @@ const Requisicoes = () => {
         </div>
       </div>
 
-      <div className='rounded-lg h-full'>
+      <div className="rounded-lg h-full">
         {/* Filters */}
         <RequisicaoFilters
           searchTerm={searchTerm}
