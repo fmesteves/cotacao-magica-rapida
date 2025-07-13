@@ -57,18 +57,29 @@ export const filterCotacoes = (cotacoes: CotacaoCompleta[], searchTerm: string) 
   
   return cotacoes.filter(
     (cot) =>
-      cot.numero_cotacao.toLowerCase().includes(lowerSearchTerm) ||
+      cot.numero.toLowerCase().includes(lowerSearchTerm) ||
       cot.descricao.toLowerCase().includes(lowerSearchTerm) ||
-      cot.solicitante.toLowerCase().includes(lowerSearchTerm)
+      cot.titulo.toLowerCase().includes(lowerSearchTerm)
   );
 };
 
 export const calcularDiasRestantes = (prazoVencimento: string) => {
-  const hoje = new Date();
-  const prazo = new Date(prazoVencimento);
-  const diffTime = prazo.getTime() - hoje.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return Math.max(0, diffDays);
+  try {
+    const hoje = new Date();
+    const prazo = new Date(prazoVencimento);
+    
+    // Verificar se a data é válida
+    if (isNaN(prazo.getTime())) {
+      return 0;
+    }
+    
+    const diffTime = prazo.getTime() - hoje.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  } catch (error) {
+    console.error('Erro ao calcular dias restantes:', error);
+    return 0;
+  }
 };
 
 export const calcularPercentualRespostas = (cotacao: CotacaoCompleta) => {
