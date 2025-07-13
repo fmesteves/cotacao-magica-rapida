@@ -17,7 +17,7 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast, useToast } from '@/hooks/use-toast';
 import ExcelUploadComponent from '@/components/uploadRCComponent';
 import {
   Dialog,
@@ -38,6 +38,8 @@ import {
   TableBody,
   TableCell,
 } from '@/components/ui/table';
+import { useEmailService } from '@/hooks/useEmailService';
+import { gerarLinkUnico } from '@/utils/cotacoes';
 
 function FornecedoresTable({
   fornecedores,
@@ -196,6 +198,13 @@ function FornecedoresTable({
 
 const NovaCotacao = () => {
   const navigate = useNavigate();
+
+  const {
+    sendCotacaoEmail,
+    isLoading: isLoadingEmail,
+    lastResponse,
+  } = useEmailService();
+
   const [files, setFiles] = useState([]);
 
   const [groupedFiles, setGroupedFiles] = useState([]);
@@ -377,7 +386,7 @@ const NovaCotacao = () => {
         .insert({
           numero: numeroCotacao,
           titulo: `Cotação para múltiplos grupos de mercadoria`,
-          descricao: `Cotação incluindo ad RCs: ${Object.keys(
+          descricao: `Cotação incluindo as RCs: ${Object.keys(
             groupedFiles2
           ).join(', ')}`,
           status: 'aberta',
@@ -411,18 +420,27 @@ const NovaCotacao = () => {
 
       // 5. Adicionar fornecedores à cotação
       const fornecedoresParaInserir = [];
+      const fornecedoresParaEmail = [];
 
       for (const [grupoMercadoria, fornecedores] of Object.entries(
         selectedFornecedores
       )) {
         for (const fornecedor of fornecedores) {
-          fornecedoresParaInserir.push({
+          fornecedoresParaEmail.push({
             cotacao_id: cotacaoInserida.id,
             fornecedor_id: fornecedor.id,
             nome_fornecedor: fornecedor.razao_social,
             email: fornecedor.email || '',
             status_resposta: 'pendente',
             observacoes: `Fornecedor para grupo ${grupoMercadoria} - ${fornecedor.familia}`,
+          });
+          fornecedoresParaInserir.push({
+            cotacao_id: cotacaoInserida.id,
+            fornecedor_id: fornecedor.id,
+            // nome_fornecedor: fornecedor.razao_social,
+            // email: fornecedor.email || '',
+            status_resposta: 'pendente',
+            // observacoes: `Fornecedor para grupo ${grupoMercadoria} - ${fornecedor.familia}`,
           });
         }
       }
@@ -438,6 +456,8 @@ const NovaCotacao = () => {
         );
       }
 
+      await enviarEmail(fornecedoresParaEmail, cotacaoInserida);
+
       return {
         success: true,
         cotacao: cotacaoInserida,
@@ -451,6 +471,57 @@ const NovaCotacao = () => {
       setIsLoading(false);
     }
   }
+
+  const enviarEmail = async (fornecedores, cotacao) => {
+    console.log(fornecedores, 'fornecedores');
+    const cotacao_fornecedores = fornecedores;
+
+    try {
+      // numero: numeroCotacao,
+      //     titulo: `Cotação para múltiplos grupos de mercadoria`,
+      //     descricao: `Cotação incluindo ad RCs: ${Object.keys(
+      //       groupedFiles2
+      //     ).join(', ')}`,
+      //     status: 'aberta',
+      //     data_limite: new Date(
+      //       Date.now() + 15 * 24 * 60 * 60 * 1000
+      //     ).toISOString(), // 15 dias
+      //     observacoes: ``,
+      // Envia email para cada fornecedor selecionado
+      for (const fornecedor of cotacao_fornecedores) {
+        await sendCotacaoEmail({
+          fornecedorEmail: fornecedor?.email,
+          fornecedorNome: fornecedor?.nome_fornecedor, // Você pode personalizar isso
+          cotacaoData: {
+            descricao: cotacao.descricao,
+            data: new Date(cotacao.created_at).toLocaleDateString('pt-BR'),
+            link: gerarLinkUnico(`${cotacao.id}/${fornecedor.fornecedor_id}`),
+            prazoEstimado: cotacao.data_limite
+              ? new Date(cotacao.data_limite).toLocaleDateString('pt-BR')
+              : undefined,
+            observacoes: cotacao.observacoes,
+          },
+          empresaConfig: {
+            nome: 'Cotação Mágica Rápida',
+            logo: '/logo.png', // Adicione o caminho do seu logo
+          },
+        });
+      }
+
+      toast({
+        title: 'Convites enviados!',
+        description: `Os emails foram enviados para ${cotacao_fornecedores.length} fornecedor(es).`,
+      });
+
+      return true;
+    } catch (error) {
+      toast({
+        title: 'Erro ao enviar emails',
+        description: 'Ocorreu um erro ao enviar os convites. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleValidateifIsEnabled = () => {
     let b = false;
@@ -612,9 +683,9 @@ const NovaCotacao = () => {
                   <DialogClose asChild>
                     <Button variant="premium">Cancelar</Button>
                   </DialogClose>
-                  <DialogClose onClick={handleSendCotation}>
-                    <Button variant="premium">Confirmar</Button>
-                  </DialogClose>
+                  <Button variant="premium" onClick={handleSendCotation}>
+                    Confirmar
+                  </Button>
                 </DialogFooter>
               </>
             ) : (
