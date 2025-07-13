@@ -6,7 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-import { Upload, ArrowLeft, FileSpreadsheet, Star, MapPin } from 'lucide-react';
+import {
+  Upload,
+  ArrowLeft,
+  FileSpreadsheet,
+  Star,
+  MapPin,
+  Loader2,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -197,6 +204,9 @@ const NovaCotacao = () => {
   const [fornecedoresTemp, setFornecedoresTemp] = useState([]);
   const [selectedFornecedores, setSelectedFornecedores] = useState([]);
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
+
   useEffect(() => {
     if (files.length > 0) {
       handleProcessRCFiles(files);
@@ -205,7 +215,6 @@ const NovaCotacao = () => {
 
   const handleProcessRCFiles = (files) => {
     setFiles(files);
-    console.log(files, 'files <<<<');
     const allFiles = files.flatMap((file) => file.data);
     const groups = [];
     const groupedFiles = allFiles.reduce((acc, file) => {
@@ -292,12 +301,9 @@ const NovaCotacao = () => {
     });
   }
 
-  async function processarDadosParaSupabase(
-    files,
-    fornecedoresData,
-    supabaseClient
-  ) {
+  async function handleSendCotation() {
     try {
+      setIsLoading(true);
       // here i need to group the files by the column NUM_REC
       const allFiles = files.flatMap((file) => file.data);
 
@@ -309,17 +315,12 @@ const NovaCotacao = () => {
         return acc;
       }, {});
 
-      console.log(groupedFiles2, 'groupedFiles2');
-
       // 1. Criar as RCs (Requisições)
       const rcsInseridas = [];
 
       for (const [numeroRc, dadosRc] of Object.entries(groupedFiles2)) {
-        console.log(numeroRc, 'numeroRc');
-        // const numeroRc = dadosRc.items[0]?.NUM_REC?.toString() || '';
-
         // Inserir RC
-        const { data: rcInserida, error: rcError } = await supabaseClient
+        const { data: rcInserida, error: rcError } = await supabase
           .from('rc')
           .insert({
             numero: numeroRc,
@@ -354,7 +355,7 @@ const NovaCotacao = () => {
           familia: item.FAMILIA,
         }));
 
-        const { data: itensInseridos, error: itensError } = await supabaseClient
+        const { data: itensInseridos, error: itensError } = await supabase
           .from('rc_items')
           .insert(itensParaInserir)
           .select();
@@ -364,30 +365,29 @@ const NovaCotacao = () => {
           continue;
         }
 
-        console.log(
-          `RC ${numeroRc} inserida com ${itensInseridos.length} itens`
-        );
+        // console.log(
+        //   `RC ${numeroRc} inserida com ${itensInseridos.length} itens`
+        // );
       }
 
       // 3. Criar a cotação
       const numeroCotacao = `COT-${Date.now()}`;
-      const { data: cotacaoInserida, error: cotacaoError } =
-        await supabaseClient
-          .from('cotacao')
-          .insert({
-            numero: numeroCotacao,
-            titulo: `Cotação para múltiplos grupos de mercadoria`,
-            descricao: `Cotação incluindo ad RCs: ${Object.keys(
-              groupedFiles2
-            ).join(', ')}`,
-            status: 'aberta',
-            data_limite: new Date(
-              Date.now() + 15 * 24 * 60 * 60 * 1000
-            ).toISOString(), // 15 dias
-            observacoes: ``,
-          })
-          .select()
-          .single();
+      const { data: cotacaoInserida, error: cotacaoError } = await supabase
+        .from('cotacao')
+        .insert({
+          numero: numeroCotacao,
+          titulo: `Cotação para múltiplos grupos de mercadoria`,
+          descricao: `Cotação incluindo ad RCs: ${Object.keys(
+            groupedFiles2
+          ).join(', ')}`,
+          status: 'aberta',
+          data_limite: new Date(
+            Date.now() + 15 * 24 * 60 * 60 * 1000
+          ).toISOString(), // 15 dias
+          observacoes: ``,
+        })
+        .select()
+        .single();
 
       if (cotacaoError) {
         console.error('Erro ao criar cotação:', cotacaoError);
@@ -401,7 +401,7 @@ const NovaCotacao = () => {
         // observacoes: `RC associada automaticamente`,
       }));
 
-      const { error: cotacaoRcError } = await supabaseClient
+      const { error: cotacaoRcError } = await supabase
         .from('cotacao_rc')
         .insert(cotacaoRcsParaInserir);
 
@@ -413,7 +413,7 @@ const NovaCotacao = () => {
       const fornecedoresParaInserir = [];
 
       for (const [grupoMercadoria, fornecedores] of Object.entries(
-        fornecedoresData
+        selectedFornecedores
       )) {
         for (const fornecedor of fornecedores) {
           fornecedoresParaInserir.push({
@@ -427,7 +427,7 @@ const NovaCotacao = () => {
         }
       }
 
-      const { error: fornecedoresError } = await supabaseClient
+      const { error: fornecedoresError } = await supabase
         .from('cotacao_fornecedores')
         .insert(fornecedoresParaInserir);
 
@@ -447,14 +447,25 @@ const NovaCotacao = () => {
     } catch (error) {
       console.error('Erro geral no processamento:', error);
       return { success: false, error };
+    } finally {
+      setIsLoading(false);
     }
   }
 
-  function handleSendCotation() {
-    console.log(groupedFiles, 'groupedFiles');
-    console.log(selectedFornecedores, 'selectedFornecedores');
-    processarDadosParaSupabase(files, selectedFornecedores, supabase);
-  }
+  const handleValidateifIsEnabled = () => {
+    let b = false;
+    let c = false;
+    Object.keys(selectedFornecedores).forEach((key) => {
+      if (selectedFornecedores[key].length > 0) {
+        b = true;
+      }
+    });
+    if (files.length > 0) {
+      c = true;
+    }
+
+    return b && c;
+  };
 
   return (
     <div className="space-y-6">
@@ -555,9 +566,67 @@ const NovaCotacao = () => {
       </div>
 
       <div>
-        <Button onClick={handleSendCotation} variant="premium">
-          Enviar Cotação
-        </Button>
+        <Dialog
+          open={isSubmitDialogOpen}
+          onOpenChange={(e) => {
+            if (isLoading && !e) {
+              return;
+            }
+            setIsSubmitDialogOpen(e);
+          }}
+        >
+          <DialogTrigger
+            disabled={
+              files.length === 0 ||
+              Object.keys(selectedFornecedores).length === 0
+            }
+          >
+            <Button
+              variant="premium"
+              disabled={
+                files.length === 0 ||
+                Object.keys(selectedFornecedores).length === 0
+              }
+            >
+              Enviar Cotação
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="min-h-[250px] flex flex-col gap-2 justify-between">
+            {isLoading && (
+              <div className="flex flex-col gap-2 items-center justify-center absolute top-0 left-0 w-full h-full bg-white/85 rounded-md z-50">
+                <Loader2 className="h-14 w-14 animate-spin" />
+                <p className="text-2xl font-semibold">Enviando cotação...</p>
+              </div>
+            )}
+            {handleValidateifIsEnabled() ? (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold">
+                    Deseja enviar a cotação?
+                  </DialogTitle>
+                  <DialogDescription className="h-full">
+                    A cotação será enviada para os fornecedores selecionados.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex flex-row gap-2 h-fit">
+                  <DialogClose asChild>
+                    <Button variant="premium">Cancelar</Button>
+                  </DialogClose>
+                  <DialogClose onClick={handleSendCotation}>
+                    <Button variant="premium">Confirmar</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </>
+            ) : (
+              <div>
+                <p>
+                  Não há <span className="font-bold">Requisições</span> ou{' '}
+                  <span className="font-bold">Fornecedores</span> selecionados.
+                </p>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
