@@ -149,6 +149,101 @@ export type Database = {
         };
         Relationships: [];
       };
+      cotacao: {
+        Row: {
+          id: string;
+          numero: string;
+          titulo: string;
+          descricao: string;
+          data_criacao: string;
+          data_limite: string;
+          observacoes: string | null;
+          status: string | null;
+          created_at: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          numero: string;
+          titulo: string;
+          descricao: string;
+          data_criacao: string;
+          data_limite: string;
+          observacoes?: string | null;
+          status?: string | null;
+          created_at?: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          numero?: string;
+          titulo?: string;
+          descricao?: string;
+          data_criacao?: string;
+          data_limite?: string;
+          observacoes?: string | null;
+          status?: string | null;
+          created_at?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      cotacao_respostas: {
+        Row: {
+          id: string;
+          cotacao_id: string;
+          fornecedor_id: string;
+          rc_item_id: string;
+          preco_unitario: number;
+          preco_total: number;
+          observacoes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          cotacao_id: string;
+          fornecedor_id: string;
+          rc_item_id: string;
+          preco_unitario: number;
+          preco_total: number;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          cotacao_id?: string;
+          fornecedor_id?: string;
+          rc_item_id?: string;
+          preco_unitario?: number;
+          preco_total?: number;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'cotacao_respostas_cotacao_id_fkey';
+            columns: ['cotacao_id'];
+            isOneToOne: false;
+            referencedRelation: 'cotacao';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cotacao_respostas_fornecedor_id_fkey';
+            columns: ['fornecedor_id'];
+            isOneToOne: false;
+            referencedRelation: 'fornecedores';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cotacao_respostas_rc_item_id_fkey';
+            columns: ['rc_item_id'];
+            isOneToOne: false;
+            referencedRelation: 'rc_items';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       fornecedores: {
         Row: {
           id: string;

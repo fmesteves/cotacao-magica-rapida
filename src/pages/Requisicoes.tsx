@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
+import { Link, Plus, Upload } from 'lucide-react';
 import { useRequisicoes } from '@/hooks/useRequisicoes';
 import { toast } from '@/hooks/use-toast';
 import { RequisicaoFilters } from '@/components/requisicoes/RequisicaoFilters';
@@ -33,22 +33,12 @@ const Requisicoes = () => {
           </h1>
         </div>
         <div className="flex gap-3 mt-4 sm:mt-0">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="rounded-2xl bg-blue-600 flex items-center gap-2">
-                <Upload className="h-4 w-4 text-white" />
-                <p className='text-white'>
-                  Importar requisição
-                </p>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Importar requisição</DialogTitle>
-              </DialogHeader>
-              {/* <ExcelUploadComponent /> */}
-            </DialogContent>
-          </Dialog>
+          <Link to="/requisicoes/nova">
+            <Button className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
+              <Plus className="h-4 w-4" />
+              Nova RC
+            </Button>
+          </Link>
         </div>
       </div>
 

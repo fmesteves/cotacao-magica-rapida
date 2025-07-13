@@ -7,60 +7,33 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Building, Calendar, Clock, FileText, Send } from "lucide-react";
+import { Building, Calendar, Clock, FileText, Send, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useCotacaoFornecedor, useEnviarProposta } from "@/hooks/useCotacoes";
+import ConfirmacaoEnvioModal from "@/components/cotacoes/ConfirmacaoEnvioModal";
 
 const PainelFornecedor = () => {
   const { cotacaoId, fornecedorId } = useParams();
-  const [cotacao, setCotacao] = useState<any>(null);
   const [valores, setValores] = useState<{ [key: string]: string }>({});
   const [observacoes, setObservacoes] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [showConfirmacao, setShowConfirmacao] = useState(false);
+  const [enviado, setEnviado] = useState(false);
 
-  // Mock data - em produção viria da API baseado no token
+  // Buscar dados da cotação
+  const { data, isLoading, error } = useCotacaoFornecedor(cotacaoId!, fornecedorId!);
+  const enviarProposta = useEnviarProposta();
+
+  // Verificar se já foi respondido
+  const jaRespondido = data?.cotacao?.cotacao_fornecedores?.[0]?.status_resposta === 'respondido';
+  const cotacaoFechada = data?.cotacao?.status === 'finalizada' || data?.cotacao?.status === 'cancelada' || data?.cotacao?.status === 'vencida';
+
+  // Marcar como visualizado quando carregar
   useEffect(() => {
-    // Simular carregamento da cotação baseado no token
-    const mockCotacao = {
-      id: "COT-2024-015",
-      rcId: "RC-2024-001",
-      descricao: "Material de escritório",
-      prazoVencimento: "2024-01-20",
-      empresa: "Empresa Solicitante Ltda",
-      fornecedor: {
-        nome: "Empresa ABC Ltda",
-        cnpj: "12.345.678/0001-90",
-        email: "contato@empresaabc.com.br"
-      },
-      itens: [
-        {
-          id: "1",
-          codigo: "EST-001",
-          descricao: "Caneta esferográfica azul",
-          unidade: "UN",
-          quantidade: 100,
-          observacoes: "Cor azul, ponta 1.0mm"
-        },
-        {
-          id: "2", 
-          codigo: "EST-002",
-          descricao: "Papel A4 75g",
-          unidade: "PCT",
-          quantidade: 50,
-          observacoes: "Pacote com 500 folhas"
-        },
-        {
-          id: "3",
-          codigo: "EST-003", 
-          descricao: "Grampeador médio",
-          unidade: "UN",
-          quantidade: 10,
-          observacoes: "Capacidade para 20 folhas"
-        }
-      ]
-    };
-
-    setCotacao(mockCotacao);
-  }, [cotacaoId, fornecedorId]);
+    if (data?.cotacao && !jaRespondido) {
+      // Aqui você pode implementar a lógica para marcar como visualizado
+      // Por enquanto, vamos apenas simular
+    }
+  }, [data, jaRespondido]);
 
   const handleValorChange = (itemId: string, valor: string) => {
     setValores(prev => ({
@@ -69,34 +42,54 @@ const PainelFornecedor = () => {
     }));
   };
 
-  const handleSubmitCotacao = async () => {
-    setLoading(true);
+  const handleSubmitCotacao = () => {
+    // Verificar se pelo menos um item tem valor
+    const itensComValor = itens.filter((item: any) => valores[item.id]?.trim());
     
-    // Validar se todos os itens têm valores
-    const itensNaoPreenchidos = cotacao.itens.filter((item: any) => !valores[item.id]?.trim());
-    
-    if (itensNaoPreenchidos.length > 0) {
+    if (itensComValor.length === 0) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha o valor para todos os itens.",
+        title: "Nenhum item selecionado",
+        description: "Por favor, preencha o valor para pelo menos um item.",
         variant: "destructive"
       });
-      setLoading(false);
       return;
     }
 
+    setShowConfirmacao(true);
+  };
+
+  const handleConfirmarEnvio = async () => {
+    if (!data?.cotacao) return;
+
+    // Preparar respostas apenas para itens com valor
+    const respostas = itens
+      .filter((item: any) => valores[item.id]?.trim())
+      .map((item: any) => {
+        const precoUnitario = parseFloat(valores[item.id].replace(',', '.'));
+        const quantidade = parseInt(item.quantidade);
+        return {
+          rc_item_id: item.id,
+          preco_unitario: precoUnitario,
+          preco_total: precoUnitario * quantidade,
+          observacoes: observacoes || undefined
+        };
+      });
+
     try {
-      // Simular envio da cotação
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await enviarProposta.mutateAsync({
+        cotacaoId: cotacaoId!,
+        fornecedorId: fornecedorId!,
+        respostas,
+        observacoesGerais: observacoes
+      });
+
+      setEnviado(true);
+      setShowConfirmacao(false);
       
       toast({
         title: "Cotação enviada com sucesso!",
         description: "Sua proposta foi registrada e será analisada pela empresa solicitante.",
       });
-
-      // Limpar formulário após envio
-      setValores({});
-      setObservacoes("");
       
     } catch (error) {
       toast({
@@ -104,24 +97,201 @@ const PainelFornecedor = () => {
         description: "Tente novamente em alguns instantes.",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const calcularTotal = () => {
-    return cotacao?.itens.reduce((total: number, item: any) => {
+    return itens.reduce((total: number, item: any) => {
       const valor = parseFloat(valores[item.id]?.replace(',', '.') || '0');
-      return total + (valor * item.quantidade);
-    }, 0) || 0;
+      return total + (valor * parseInt(item.quantidade));
+    }, 0);
   };
 
-  if (!cotacao) {
+  // Estados de erro ou carregamento
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Carregando cotação...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <XCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Erro ao carregar cotação</h2>
+          <p className="text-muted-foreground">
+            Não foi possível carregar os dados da cotação. Verifique se o link está correto.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data?.cotacao) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertTriangle className="h-16 w-16 text-warning mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Cotação não encontrada</h2>
+          <p className="text-muted-foreground">
+            A cotação solicitada não foi encontrada ou você não tem acesso a ela.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const cotacao = data.cotacao;
+  const fornecedor = cotacao.cotacao_fornecedores?.[0]?.fornecedor_id;
+  
+  // Extrair e filtrar itens pelo grupo_mercadoria do fornecedor
+  const fornecedorGrupo = fornecedor?.cod_grupo_mercadoria;
+  const itens = cotacao.cotacao_rc?.flatMap(cotacaoRc => 
+    cotacaoRc.rc?.rc_items?.filter(item => 
+      item.grupo_mercadoria === fornecedorGrupo
+    ) || []
+  ) || [];
+
+  // Se já foi respondido, mostrar resumo
+  if (jaRespondido || enviado) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <div className="bg-card border-b shadow-soft">
+          <div className="max-w-6xl mx-auto px-6 py-6">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Cotação Enviada</h1>
+                <p className="text-muted-foreground">
+                  {cotacao.numero} - {cotacao.descricao}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+          {/* Mensagem de sucesso */}
+          <Card className="shadow-soft border-green-200 bg-green-50">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <CheckCircle className="h-8 w-8 text-green-600 mt-1" />
+                <div>
+                  <h2 className="text-xl font-semibold text-green-800 mb-2">
+                    Proposta Enviada com Sucesso!
+                  </h2>
+                  <p className="text-green-700">
+                    Sua proposta foi registrada e será analisada pela empresa solicitante. 
+                    Você receberá uma notificação quando houver atualizações sobre a cotação.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Resumo da cotação */}
+          <Card className="shadow-soft">
+            <CardHeader>
+              <CardTitle>Resumo da Cotação</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                  <Label className="text-sm text-muted-foreground">Código da Cotação</Label>
+                  <p className="font-medium">{cotacao.numero}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Descrição</Label>
+                  <p className="font-medium">{cotacao.descricao}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Título</Label>
+                  <p className="font-medium">{cotacao.titulo}</p>
+                </div>
+              </div>
+
+              {/* Itens cotados */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Itens Cotados</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Código</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Quantidade</TableHead>
+                        <TableHead>Valor Unitário</TableHead>
+                        <TableHead>Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.propostas.map((resposta: any) => {
+                        const item = resposta.rc_item_id;
+                        return (
+                          <TableRow key={resposta.id}>
+                            <TableCell className="font-medium">
+                              {item?.cod_material}
+                            </TableCell>
+                            <TableCell>{item?.descricao}</TableCell>
+                            <TableCell>
+                              {item?.quantidade} {item?.unidade_medida}
+                            </TableCell>
+                            <TableCell>
+                              R$ {resposta.preco_unitario.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="font-medium text-success">
+                              R$ {resposta.preco_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* Observações das respostas */}
+              {data.propostas.some((resposta: any) => resposta.observacoes) && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-3">Observações</h3>
+                  <div className="space-y-2">
+                    {data.propostas
+                      .filter((resposta: any) => resposta.observacoes)
+                      .map((resposta: any) => (
+                        <div key={resposta.id} className="bg-gray-50 p-3 rounded-lg">
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>{resposta.rc_item_id?.cod_material}</strong> - {resposta.rc_item_id?.descricao}
+                          </p>
+                          <p className="text-sm">{resposta.observacoes}</p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Se a cotação está fechada
+  if (cotacaoFechada) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <XCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Cotação Encerrada</h2>
+          <p className="text-muted-foreground">
+            Esta cotação já foi encerrada e não aceita mais propostas.
+          </p>
         </div>
       </div>
     );
@@ -137,7 +307,7 @@ const PainelFornecedor = () => {
             <div>
               <h1 className="text-2xl font-bold text-foreground">Painel de Cotação</h1>
               <p className="text-muted-foreground">
-                Solicitação: {cotacao.rcId} - {cotacao.descricao}
+                {cotacao.numero} - {cotacao.descricao}
               </p>
             </div>
           </div>
@@ -153,7 +323,7 @@ const PainelFornecedor = () => {
                 <FileText className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm text-muted-foreground">Código</p>
-                  <p className="font-medium">{cotacao.id}</p>
+                  <p className="font-medium">{cotacao.numero}</p>
                 </div>
               </div>
             </CardContent>
@@ -165,7 +335,9 @@ const PainelFornecedor = () => {
                 <Calendar className="h-5 w-5 text-warning" />
                 <div>
                   <p className="text-sm text-muted-foreground">Prazo</p>
-                  <p className="font-medium">{cotacao.prazoVencimento}</p>
+                  <p className="font-medium">
+                    {new Date(cotacao.data_limite).toLocaleDateString('pt-BR')}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -176,8 +348,8 @@ const PainelFornecedor = () => {
               <div className="flex items-center gap-2">
                 <Building className="h-5 w-5 text-success" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Empresa</p>
-                  <p className="font-medium">{cotacao.empresa}</p>
+                  <p className="text-sm text-muted-foreground">Título</p>
+                  <p className="font-medium">{cotacao.titulo}</p>
                 </div>
               </div>
             </CardContent>
@@ -193,15 +365,15 @@ const PainelFornecedor = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label className="text-sm text-muted-foreground">Empresa</Label>
-                <p className="font-medium">{cotacao.fornecedor.razao_social}</p>
+                <p className="font-medium">{fornecedor?.razao_social}</p>
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">CNPJ</Label>
-                <p className="font-medium">{cotacao.fornecedor.cnpj}</p>
+                <p className="font-medium">{fornecedor?.cnpj}</p>
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">E-mail</Label>
-                <p className="font-medium">{cotacao.fornecedor.email}</p>
+                <p className="font-medium">{fornecedor?.email}</p>
               </div>
             </div>
           </CardContent>
@@ -212,6 +384,12 @@ const PainelFornecedor = () => {
           <CardHeader>
             <CardTitle>Itens para Cotação</CardTitle>
           </CardHeader>
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+            <p className="mb-0 text-yellow-800 text-sm">
+              <strong>⚠️ Atenção:</strong> Preencha o valor apenas para os itens que você está ciente de fornecer. 
+              Itens sem valor serão ignorados na proposta.
+            </p>
+          </div>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
@@ -219,23 +397,26 @@ const PainelFornecedor = () => {
                   <TableRow>
                     <TableHead>Código</TableHead>
                     <TableHead>Descrição</TableHead>
+                    <TableHead>Fabricante</TableHead>
                     <TableHead>Unidade</TableHead>
                     <TableHead>Quantidade</TableHead>
                     <TableHead>Valor Unitário (R$)</TableHead>
                     <TableHead>Total (R$)</TableHead>
-                    <TableHead>Observações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {cotacao.itens.map((item: any) => {
+                  {itens.map((item: any) => {
                     const valorUnitario = parseFloat(valores[item.id]?.replace(',', '.') || '0');
-                    const total = valorUnitario * item.quantidade;
+                    const total = valorUnitario * parseInt(item.quantidade);
                     
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.codigo}</TableCell>
+                        <TableCell className="font-medium">
+                          {item.cod_material}
+                        </TableCell>
                         <TableCell>{item.descricao}</TableCell>
-                        <TableCell>{item.unidade}</TableCell>
+                        <TableCell>{item.fabricante || '-'}</TableCell>
+                        <TableCell>{item.unidade_medida}</TableCell>
                         <TableCell>{item.quantidade}</TableCell>
                         <TableCell>
                           <Input
@@ -248,9 +429,6 @@ const PainelFornecedor = () => {
                         </TableCell>
                         <TableCell className="font-medium text-success">
                           R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground max-w-xs">
-                          {item.observacoes}
                         </TableCell>
                       </TableRow>
                     );
@@ -291,11 +469,11 @@ const PainelFornecedor = () => {
         <div className="flex justify-center">
           <Button
             onClick={handleSubmitCotacao}
-            disabled={loading}
+            disabled={enviarProposta.isPending}
             className="bg-gradient-primary hover:opacity-90 px-8 py-3"
             size="lg"
           >
-            {loading ? (
+            {enviarProposta.isPending ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 Enviando...
@@ -309,6 +487,30 @@ const PainelFornecedor = () => {
           </Button>
         </div>
       </div>
+
+      {/* Modal de Confirmação */}
+      <ConfirmacaoEnvioModal
+        open={showConfirmacao}
+        onOpenChange={setShowConfirmacao}
+        itens={itens
+          .filter((item: any) => valores[item.id]?.trim())
+          .map((item: any) => {
+            const valorUnitario = parseFloat(valores[item.id].replace(',', '.'));
+            return {
+              id: item.id,
+              codigo: item.cod_material,
+              descricao: item.descricao,
+              unidade: item.unidade_medida,
+              quantidade: parseInt(item.quantidade),
+              valorUnitario,
+              total: valorUnitario * parseInt(item.quantidade),
+              observacoes: item.fabricante || '-'
+            };
+          })}
+        observacoes={observacoes}
+        onConfirm={handleConfirmarEnvio}
+        loading={enviarProposta.isPending}
+      />
     </div>
   );
 };

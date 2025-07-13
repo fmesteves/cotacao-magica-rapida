@@ -1,6 +1,6 @@
 import type { Tables } from '@/integrations/supabase/types';
 
-export type Cotacao = Tables<'cotacoes'>;
+export type Cotacao = Tables<'cotacao'>;
 export type CotacaoFornecedor = Tables<'cotacao_fornecedores'>;
 export type CotacaoItem = Tables<'cotacao_itens'>;
 export type Proposta = Tables<'propostas'>;

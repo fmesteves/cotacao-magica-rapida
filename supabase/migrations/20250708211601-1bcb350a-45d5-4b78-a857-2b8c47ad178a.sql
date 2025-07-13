@@ -1,15 +1,18 @@
 -- Create table for suppliers (fornecedores)
 CREATE TABLE public.fornecedores (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  nome TEXT NOT NULL,
+  razao_social TEXT NOT NULL,
   cnpj TEXT NOT NULL UNIQUE,
   email TEXT NOT NULL,
   telefone TEXT,
   endereco TEXT,
   cidade TEXT,
-  estado TEXT NOT NULL,
+  uf TEXT NOT NULL,
   cep TEXT,
-  grupos_mercadoria TEXT[] NOT NULL DEFAULT '{}',
+  grupo_mercadoria TEXT,
+  cod_grupo_mercadoria TEXT,
+  cod_sap TEXT,
+  familia TEXT,
   avaliacao DECIMAL DEFAULT 0 CHECK (avaliacao >= 0 AND avaliacao <= 5),
   status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo', 'pendente')),
   observacoes TEXT,
@@ -35,6 +38,5 @@ EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Create indexes for better performance
 CREATE INDEX idx_fornecedores_cnpj ON public.fornecedores(cnpj);
-CREATE INDEX idx_fornecedores_estado ON public.fornecedores(estado);
+CREATE INDEX idx_fornecedores_uf ON public.fornecedores(uf);
 CREATE INDEX idx_fornecedores_status ON public.fornecedores(status);
-CREATE INDEX idx_fornecedores_grupos_mercadoria ON public.fornecedores USING GIN(grupos_mercadoria);
