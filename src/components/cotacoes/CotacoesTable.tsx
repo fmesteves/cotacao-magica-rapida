@@ -52,7 +52,7 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                 <TableRow key={cotacao.id} className="hover:bg-muted/50">
                   <TableCell>
                     <div>
-                      <p className="font-medium">{cotacao.numero_cotacao}</p>
+                      <p className="font-medium">{cotacao.numero}</p>
                       <p className="text-sm text-muted-foreground">
                         {cotacao.cotacao_itens?.length || 0} itens
                       </p>
@@ -60,7 +60,7 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                   </TableCell>
                   <TableCell>
                     <p className="font-medium">{cotacao.descricao}</p>
-                    <p className="text-sm text-muted-foreground">{cotacao.solicitante}</p>
+                    <p className="text-sm text-muted-foreground">{cotacao.titulo}</p>
                   </TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(cotacao.status as any)}>
@@ -71,17 +71,34 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {cotacao.data_envio ? format(new Date(cotacao.data_envio), "dd/MM/yyyy", { locale: ptBR }) : "-"}
+                        {(() => {
+                          try {
+                            if (!cotacao.data_criacao) return "-";
+                            const date = new Date(cotacao.data_criacao);
+                            if (isNaN(date.getTime())) return "Data inválida";
+                            return format(date, "dd/MM/yyyy", { locale: ptBR });
+                          } catch (error) {
+                            return "Data inválida";
+                          }
+                        })()}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">
-                        {calcularDiasRestantes(cotacao.prazo_vencimento)} dias
+                        {calcularDiasRestantes(cotacao.data_limite)} dias
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        ({format(new Date(cotacao.prazo_vencimento), "dd/MM/yyyy", { locale: ptBR })})
+                        ({(() => {
+                          try {
+                            const date = new Date(cotacao.data_limite);
+                            if (isNaN(date.getTime())) return "Data inválida";
+                            return format(date, "dd/MM/yyyy", { locale: ptBR });
+                          } catch (error) {
+                            return "Data inválida";
+                          }
+                        })()})
                       </span>
                     </div>
                   </TableCell>
