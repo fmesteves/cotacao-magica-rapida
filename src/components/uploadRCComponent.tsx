@@ -248,9 +248,7 @@ const ExcelUploadComponent = ({
     <Accordion type="multiple" defaultValue={['item-1']}>
       <AccordionItem value="item-1">
         <AccordionTrigger className="hover:bg-gray-100 pr-4 pl-2 hover:no-underline">
-          <p className="">
-            Escolha arquivos Excel ou arraste e solte na área abaixo
-          </p>
+          <p className="">Adicione os Arquivos de Requisição</p>
         </AccordionTrigger>
         <AccordionContent>
           <div className="flex flex-col gap-4">
@@ -274,6 +272,9 @@ const ExcelUploadComponent = ({
                       />
                     </label>
                   </div>
+                  <p className="text-xl text-gray-800">
+                    Escolha arquivos Excel ou arraste e solte na área abaixo
+                  </p>
                   <p className="text-sm text-gray-500">
                     Suporta múltiplos arquivos .xlsx e .xls
                   </p>
@@ -345,7 +346,7 @@ const ExcelUploadComponent = ({
                     </p>
                   </AccordionTrigger>
                   <AccordionContent className="p-2">
-                    <div className="">  
+                    <div className="">
                       <div className="space-y-4">
                         {processedFiles.map((fileData, index) => (
                           <div

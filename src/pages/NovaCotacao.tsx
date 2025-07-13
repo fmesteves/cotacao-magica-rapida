@@ -1,356 +1,564 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { CalendarIcon, ArrowLeft, Plus, Trash2 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { useCreateCotacao } from "@/hooks/useCotacoes";
-import { useAddItensCotacao } from "@/hooks/useCotacaoItens";
-import { useAddFornecedoresCotacao } from "@/hooks/useCotacaoFornecedores";
-import { useRequisicoes } from "@/hooks/useRequisicoes";
-import { useFornecedores } from "@/hooks/useFornecedores";
-import { toast } from "@/hooks/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
+import { Upload, ArrowLeft, FileSpreadsheet, Star, MapPin } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import ExcelUploadComponent from '@/components/uploadRCComponent';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogHeader,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table';
+
+function FornecedoresTable({
+  fornecedores,
+  selectedFornecedores,
+  handleToggleFornecedor,
+  handleSelectAll,
+  handleUnselectAll,
+}: {
+  fornecedores: any[];
+  selectedFornecedores: any[];
+  handleToggleFornecedor: (fornecedor: any, check: boolean | string) => void;
+  handleSelectAll: () => void;
+  handleUnselectAll: () => void;
+}) {
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${
+          i < Math.floor(rating)
+            ? 'text-warning fill-warning'
+            : 'text-muted-foreground'
+        }`}
+      />
+    ));
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ativo':
+        return (
+          <Badge
+            variant="outline"
+            className="bg-success/10 text-success border-success"
+          >
+            Ativo
+          </Badge>
+        );
+      case 'pendente':
+        return (
+          <Badge
+            variant="outline"
+            className="bg-warning/10 text-warning border-warning"
+          >
+            Pendente
+          </Badge>
+        );
+      case 'inativo':
+        return (
+          <Badge variant="outline" className="bg-muted text-muted-foreground">
+            Inativo
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">Desconhecido</Badge>;
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex flex-row gap-2 justify-end">
+        {/* the buttons will be with bg when is all selected or unselected */}
+        <Button
+          disabled={selectedFornecedores.length === fornecedores.length}
+          variant="outline"
+          onClick={() => handleSelectAll()}
+          className={`${
+            selectedFornecedores.length === fornecedores.length
+              ? 'bg-primary text-primary-foreground'
+              : ''
+          }`}
+        >
+          Selecionar Todos
+        </Button>
+        <Button
+          disabled={selectedFornecedores.length === 0}
+          variant="outline"
+          onClick={() => handleUnselectAll()}
+          className={`${
+            selectedFornecedores.length === 0
+              ? 'bg-primary text-primary-foreground'
+              : ''
+          }`}
+        >
+          Remover Todos
+        </Button>
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Fornecedor</TableHead>
+            <TableHead>Localização</TableHead>
+            <TableHead>Avaliação</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="w-[72px] text-center">Cotar</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {fornecedores.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={8}
+                className="text-center py-8 text-muted-foreground"
+              >
+                Nenhum fornecedor encontrado
+              </TableCell>
+            </TableRow>
+          ) : (
+            fornecedores.map((forn) => (
+              <TableRow key={forn.id} className="hover:bg-muted/50">
+                <TableCell>
+                  <div>
+                    <p className="font-medium">{forn.razao_social}</p>
+                    <p className="text-sm text-muted-foreground">{forn.cnpj}</p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-sm">
+                      {forn.cidade ? `${forn.cidade}, ` : ''}
+                      {forn.estado}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <div className="flex">
+                      {renderStars(forn.avaliacao || 0)}
+                    </div>
+                    <span className="text-sm text-muted-foreground ml-1">
+                      {forn.avaliacao || 0}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>{getStatusBadge(forn.status)}</TableCell>
+                <TableCell className="flex justify-center items-center">
+                  <Checkbox
+                    checked={selectedFornecedores?.some(
+                      (e) => e.id === forn.id
+                    )}
+                    onCheckedChange={(checked) => {
+                      handleToggleFornecedor(forn, checked);
+                    }}
+                  />
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
 
 const NovaCotacao = () => {
   const navigate = useNavigate();
-  const [numeroCotacao, setNumeroCotacao] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [solicitante, setSolicitante] = useState("");
-  const [observacoes, setObservacoes] = useState("");
-  const [prazoVencimento, setPrazoVencimento] = useState<Date>();
-  const [itensSelecionados, setItensSelecionados] = useState<Array<{ requisicaoId: string; quantidade: number }>>([]);
-  const [fornecedoresSelecionados, setFornecedoresSelecionados] = useState<string[]>([]);
+  const [files, setFiles] = useState([]);
 
-  const { data: requisicoes = [] } = useRequisicoes();
-  const { data: fornecedores = [] } = useFornecedores();
-  const createCotacao = useCreateCotacao();
-  const addItens = useAddItensCotacao();
-  const addFornecedores = useAddFornecedoresCotacao();
+  const [groupedFiles, setGroupedFiles] = useState([]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!numeroCotacao || !descricao || !solicitante || !prazoVencimento) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios.",
-        variant: "destructive",
-      });
-      return;
+  const [fornecedores, setFornecedores] = useState([]);
+  const [fornecedoresTemp, setFornecedoresTemp] = useState([]);
+  const [selectedFornecedores, setSelectedFornecedores] = useState([]);
+
+  useEffect(() => {
+    if (files.length > 0) {
+      handleProcessRCFiles(files);
     }
+  }, [files]);
 
-    if (itensSelecionados.length === 0) {
-      toast({
-        title: "Erro", 
-        description: "Selecione pelo menos um item para cotação.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleProcessRCFiles = (files) => {
+    setFiles(files);
+    console.log(files, 'files <<<<');
+    const allFiles = files.flatMap((file) => file.data);
+    const groups = [];
+    const groupedFiles = allFiles.reduce((acc, file) => {
+      if (!acc[file.GRUPO_MERCADORIA]) {
+        acc[file.GRUPO_MERCADORIA] = {
+          familia: file.FAMILIA,
+          items: [],
+        };
+        groups.push(file.GRUPO_MERCADORIA);
+      }
+      acc[file.GRUPO_MERCADORIA].items.push(file);
+      return acc;
+    }, {});
+    setGroupedFiles(groupedFiles);
+    handleProcessFornecedores(groupedFiles, groups);
+  };
 
-    if (fornecedoresSelecionados.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Selecione pelo menos um fornecedor.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleProcessFornecedores = (groupedFiles, groups) => {
+    const rcGroupTypes = groups;
+    const filteredFornecedores = fornecedoresTemp.filter((fornecedor) =>
+      rcGroupTypes.includes(fornecedor.cod_grupo_mercadoria)
+    );
 
+    const groupedFornecedores = filteredFornecedores.reduce(
+      (acc, fornecedor) => {
+        if (!acc[fornecedor.cod_grupo_mercadoria]) {
+          acc[fornecedor.cod_grupo_mercadoria] = [];
+        }
+        acc[fornecedor.cod_grupo_mercadoria].push(fornecedor);
+        return acc;
+      },
+      {}
+    );
+
+    setFornecedores(groupedFornecedores);
+    setSelectedFornecedores(groupedFornecedores);
+  };
+
+  useEffect(() => {
+    const fetchFornecedores = async () => {
+      const { data, error } = await supabase.from('fornecedores').select('*');
+
+      setFornecedoresTemp(data);
+    };
+    fetchFornecedores();
+  }, []);
+
+  function handleToggleFornecedor(
+    grupo_mercadoria: string,
+    fornecedor: any,
+    check: boolean | string
+  ) {
+    setSelectedFornecedores((prev) => {
+      if (!check) {
+        return {
+          ...prev,
+          [grupo_mercadoria]: prev[grupo_mercadoria].filter(
+            (id) => id.id !== fornecedor.id
+          ),
+        };
+      }
+      return {
+        ...prev,
+        [grupo_mercadoria]: [...prev[grupo_mercadoria], fornecedor],
+      };
+    });
+  }
+
+  function handleSelectAll(grupo_mercadoria: string) {
+    setSelectedFornecedores((prev) => {
+      return {
+        ...prev,
+        [grupo_mercadoria]: fornecedores[grupo_mercadoria],
+      };
+    });
+  }
+
+  function handleUnselectAll(grupo_mercadoria: string) {
+    setSelectedFornecedores((prev) => {
+      return {
+        ...prev,
+        [grupo_mercadoria]: [],
+      };
+    });
+  }
+
+  async function processarDadosParaSupabase(
+    files,
+    fornecedoresData,
+    supabaseClient
+  ) {
     try {
-      // Criar cotação
-      const cotacao = await createCotacao.mutateAsync({
-        numero_cotacao: numeroCotacao,
-        descricao,
-        solicitante,
-        observacoes,
-        prazo_vencimento: prazoVencimento.toISOString(),
-        status: 'rascunho',
-        data_criacao: new Date().toISOString(),
-        data_envio: null,
-      });
+      // here i need to group the files by the column NUM_REC
+      const allFiles = files.flatMap((file) => file.data);
 
-      // Adicionar itens
-      await addItens.mutateAsync({
-        cotacaoId: cotacao.id,
-        itens: itensSelecionados,
-      });
+      const groupedFiles2 = allFiles.reduce((acc, file) => {
+        if (!acc[file.NUM_REC]) {
+          acc[file.NUM_REC] = [];
+        }
+        acc[file.NUM_REC].push(file);
+        return acc;
+      }, {});
 
-      // Adicionar fornecedores
-      await addFornecedores.mutateAsync({
-        cotacaoId: cotacao.id,
-        fornecedorIds: fornecedoresSelecionados,
-      });
+      console.log(groupedFiles2, 'groupedFiles2');
 
-      toast({
-        title: "Sucesso",
-        description: "Cotação criada com sucesso!",
-      });
+      // 1. Criar as RCs (Requisições)
+      const rcsInseridas = [];
 
-      navigate("/cotacoes");
+      for (const [numeroRc, dadosRc] of Object.entries(groupedFiles2)) {
+        console.log(numeroRc, 'numeroRc');
+        // const numeroRc = dadosRc.items[0]?.NUM_REC?.toString() || '';
+
+        // Inserir RC
+        const { data: rcInserida, error: rcError } = await supabaseClient
+          .from('rc')
+          .insert({
+            numero: numeroRc,
+          })
+          .select()
+          .single();
+
+        if (rcError) {
+          console.error('Erro ao inserir RC:', rcError);
+          continue;
+        }
+
+        rcsInseridas.push(rcInserida);
+
+        const itensParaInserir = dadosRc.map((item) => ({
+          rc_id: rcInserida.id,
+          numero_item: item.NUM_ITEM_RC,
+          cod_material: item.COD_MATERIAL,
+          descricao: item.DESC_MATERIAL,
+          fabricante: item.FABRICANTE,
+          numero_peca_fabricante: item.NUMERO_PECA_FABRICANTE,
+          grupo_mercadoria: item.GRUPO_MERCADORIA,
+          quantidade: item.QUANTID,
+          unidade_medida: item.UND_MED,
+          preco_requisitado: item.PRECO_REQ,
+          unidade_preco: item.UND_PRECO,
+          centro: item.CENTRO,
+          endereco: item.ENDERECO,
+          cep: item.CEP,
+          cidade: item.CIDADE,
+          uf: item.UF,
+          familia: item.FAMILIA,
+        }));
+
+        const { data: itensInseridos, error: itensError } = await supabaseClient
+          .from('rc_items')
+          .insert(itensParaInserir)
+          .select();
+
+        if (itensError) {
+          console.error('Erro ao inserir itens da RC:', itensError);
+          continue;
+        }
+
+        console.log(
+          `RC ${numeroRc} inserida com ${itensInseridos.length} itens`
+        );
+      }
+
+      // 3. Criar a cotação
+      const numeroCotacao = `COT-${Date.now()}`;
+      const { data: cotacaoInserida, error: cotacaoError } =
+        await supabaseClient
+          .from('cotacao')
+          .insert({
+            numero: numeroCotacao,
+            titulo: `Cotação para múltiplos grupos de mercadoria`,
+            descricao: `Cotação incluindo ad RCs: ${Object.keys(
+              groupedFiles2
+            ).join(', ')}`,
+            status: 'aberta',
+            data_limite: new Date(
+              Date.now() + 15 * 24 * 60 * 60 * 1000
+            ).toISOString(), // 15 dias
+            observacoes: ``,
+          })
+          .select()
+          .single();
+
+      if (cotacaoError) {
+        console.error('Erro ao criar cotação:', cotacaoError);
+        return { success: false, error: cotacaoError };
+      }
+
+      // 4. Associar RCs à cotação
+      const cotacaoRcsParaInserir = rcsInseridas.map((rc) => ({
+        cotacao_id: cotacaoInserida.id,
+        rc_id: rc.id,
+        // observacoes: `RC associada automaticamente`,
+      }));
+
+      const { error: cotacaoRcError } = await supabaseClient
+        .from('cotacao_rc')
+        .insert(cotacaoRcsParaInserir);
+
+      if (cotacaoRcError) {
+        console.error('Erro ao associar RCs à cotação:', cotacaoRcError);
+      }
+
+      // 5. Adicionar fornecedores à cotação
+      const fornecedoresParaInserir = [];
+
+      for (const [grupoMercadoria, fornecedores] of Object.entries(
+        fornecedoresData
+      )) {
+        for (const fornecedor of fornecedores) {
+          fornecedoresParaInserir.push({
+            cotacao_id: cotacaoInserida.id,
+            fornecedor_id: fornecedor.id,
+            nome_fornecedor: fornecedor.razao_social,
+            email: fornecedor.email || '',
+            status_resposta: 'pendente',
+            observacoes: `Fornecedor para grupo ${grupoMercadoria} - ${fornecedor.familia}`,
+          });
+        }
+      }
+
+      const { error: fornecedoresError } = await supabaseClient
+        .from('cotacao_fornecedores')
+        .insert(fornecedoresParaInserir);
+
+      if (fornecedoresError) {
+        console.error(
+          'Erro ao adicionar fornecedores à cotação:',
+          fornecedoresError
+        );
+      }
+
+      return {
+        success: true,
+        cotacao: cotacaoInserida,
+        rcs: rcsInseridas,
+        message: `Processamento concluído! Cotação ${numeroCotacao} criada com ${rcsInseridas.length} RCs e ${fornecedoresParaInserir.length} fornecedores.`,
+      };
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao criar cotação. Tente novamente.",
-        variant: "destructive",
-      });
+      console.error('Erro geral no processamento:', error);
+      return { success: false, error };
     }
-  };
+  }
 
-  const handleAddItem = (requisicaoId: string) => {
-    if (!itensSelecionados.find(item => item.requisicaoId === requisicaoId)) {
-      const requisicao = requisicoes.find(r => r.id === requisicaoId);
-      setItensSelecionados([...itensSelecionados, { 
-        requisicaoId, 
-        quantidade: requisicao?.quantidade || 1 
-      }]);
-    }
-  };
-
-  const handleRemoveItem = (requisicaoId: string) => {
-    setItensSelecionados(itensSelecionados.filter(item => item.requisicaoId !== requisicaoId));
-  };
-
-  const handleQuantidadeChange = (requisicaoId: string, quantidade: number) => {
-    setItensSelecionados(itensSelecionados.map(item => 
-      item.requisicaoId === requisicaoId ? { ...item, quantidade } : item
-    ));
-  };
+  function handleSendCotation() {
+    console.log(groupedFiles, 'groupedFiles');
+    console.log(selectedFornecedores, 'selectedFornecedores');
+    processarDadosParaSupabase(files, selectedFornecedores, supabase);
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/cotacoes")}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Nova Cotação</h1>
-          <p className="text-muted-foreground">
-            Crie uma nova cotação de preços
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Nova Cotação</h1>
+          </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Informações Básicas */}
-        <div className="lg:col-span-2">
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle>Informações Básicas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="numero">Número da Cotação *</Label>
-                  <Input
-                    id="numero"
-                    value={numeroCotacao}
-                    onChange={(e) => setNumeroCotacao(e.target.value)}
-                    placeholder="Ex: COT-2024-001"
-                  />
+      {/* Import Section */}
+      <ExcelUploadComponent
+        processedFiles={files}
+        setProcessedFiles={setFiles}
+        // handleProcessFiles={handleProcessFiles}
+      />
+
+      {/* here i need to show how many item each category has, the categories will be divides by the column: GRUPO MERCADORIA */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-lg font-bold">Mercadorias: </h2>
+          <div className="text-sm text-muted-foreground gap-2 flex flex-col">
+            {Object.keys(groupedFiles).map((key) => (
+              <div
+                key={key}
+                className="flex flex-col gap-2 border border-gray-200 rounded-md p-2 border-dashed"
+              >
+                <div className="hover:bg-gray-100 flex flex-row gap-2 items-center justify-between pl-2">
+                  <p>
+                    {key} - {groupedFiles[key].familia} -{' '}
+                    {groupedFiles[key].items.length} itens
+                  </p>
+                  <Dialog>
+                    <DialogTrigger>
+                      <Button variant="link">Ver Itens</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Itens</DialogTitle>
+                      </DialogHeader>
+                      <DialogDescription>
+                        {groupedFiles[key].items.map((item, c_index) => (
+                          <div key={key + c_index + item.NUM_ITEM_RC}>
+                            <p>{item.DESC_MATERIAL}</p>
+                          </div>
+                        ))}
+                      </DialogDescription>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="solicitante">Solicitante *</Label>
-                  <Input
-                    id="solicitante"
-                    value={solicitante}
-                    onChange={(e) => setSolicitante(e.target.value)}
-                    placeholder="Nome do solicitante"
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="descricao">Descrição *</Label>
-                <Input
-                  id="descricao"
-                  value={descricao}
-                  onChange={(e) => setDescricao(e.target.value)}
-                  placeholder="Descrição da cotação"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Prazo de Vencimento *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !prazoVencimento && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {prazoVencimento ? (
-                        format(prazoVencimento, "dd/MM/yyyy", { locale: ptBR })
-                      ) : (
-                        "Selecione a data"
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={prazoVencimento}
-                      onSelect={setPrazoVencimento}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="observacoes">Observações</Label>
-                <Textarea
-                  id="observacoes"
-                  value={observacoes}
-                  onChange={(e) => setObservacoes(e.target.value)}
-                  placeholder="Observações adicionais"
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Itens da Cotação */}
-          <Card className="shadow-soft mt-6">
-            <CardHeader>
-              <CardTitle>Itens da Cotação</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Adicionar Item</Label>
-                <Select onValueChange={handleAddItem}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma requisição..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {requisicoes.filter(req => !itensSelecionados.find(item => item.requisicaoId === req.id)).map((req) => (
-                      <SelectItem key={req.id} value={req.id}>
-                        {req.numero_rc} - {req.descricao}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Lista de itens selecionados */}
-              <div className="space-y-2">
-                {itensSelecionados.map((item) => {
-                  const requisicao = requisicoes.find(r => r.id === item.requisicaoId);
-                  return (
-                    <div key={item.requisicaoId} className="flex items-center gap-4 p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium">{requisicao?.numero_rc}</p>
-                        <p className="text-sm text-muted-foreground">{requisicao?.descricao}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Label className="text-sm">Qtd:</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={item.quantidade}
-                          onChange={(e) => handleQuantidadeChange(item.requisicaoId, Number(e.target.value))}
-                          className="w-20"
+                <hr className="border-gray-200" />
+                <div className="hover:bg-gray-100 flex flex-row gap-2 items-center justify-between pl-2">
+                  <p>
+                    {selectedFornecedores[key]?.length || 0} Fornecedores
+                    Selecionados
+                  </p>
+                  <Dialog>
+                    <DialogTrigger>
+                      <Button variant="link">Ver Fornecedores</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-h-[90vh] max-w-[90vw] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Fornecedores</DialogTitle>
+                      </DialogHeader>
+                      <DialogDescription>
+                        <FornecedoresTable
+                          fornecedores={fornecedores[key]}
+                          selectedFornecedores={selectedFornecedores[key]}
+                          handleToggleFornecedor={(fornecedor, checked) =>
+                            handleToggleFornecedor(key, fornecedor, checked)
+                          }
+                          handleSelectAll={() => handleSelectAll(key)}
+                          handleUnselectAll={() => handleUnselectAll(key)}
                         />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveItem(item.requisicaoId)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Fornecedores */}
-        <div>
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle>Fornecedores</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                {fornecedores.map((fornecedor) => (
-                  <div key={fornecedor.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={fornecedor.id}
-                      checked={fornecedoresSelecionados.includes(fornecedor.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setFornecedoresSelecionados([...fornecedoresSelecionados, fornecedor.id]);
-                        } else {
-                          setFornecedoresSelecionados(fornecedoresSelecionados.filter(id => id !== fornecedor.id));
-                        }
-                      }}
-                    />
-                    <Label htmlFor={fornecedor.id} className="text-sm font-normal">
-                      {fornecedor.razao_social}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-4 border-t">
-                <div className="flex flex-wrap gap-1">
-                  {fornecedoresSelecionados.map((fornecedorId) => {
-                    const fornecedor = fornecedores.find(f => f.id === fornecedorId);
-                    return (
-                      <Badge key={fornecedorId} variant="secondary">
-                        {fornecedor?.razao_social}
-                      </Badge>
-                    );
-                  })}
+                      </DialogDescription>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="premium">Confirmar</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Ações */}
-          <div className="flex flex-col gap-3 mt-6">
-            <Button 
-              type="submit" 
-              className="bg-gradient-primary hover:opacity-90"
-              disabled={createCotacao.isPending}
-            >
-              {createCotacao.isPending ? "Criando..." : "Criar Cotação"}
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => navigate("/cotacoes")}
-            >
-              Cancelar
-            </Button>
+            ))}
           </div>
         </div>
-      </form>
+      </div>
+
+      <div>
+        <Button onClick={handleSendCotation} variant="premium">
+          Enviar Cotação
+        </Button>
+      </div>
     </div>
   );
 };

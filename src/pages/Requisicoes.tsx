@@ -38,20 +38,6 @@ const Requisicoes = () => {
           </p>
         </div>
         <div className="flex gap-3 mt-4 sm:mt-0">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                Importar RC
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Importar RC</DialogTitle>
-              </DialogHeader>
-              {/* <ExcelUploadComponent /> */}
-            </DialogContent>
-          </Dialog>
           <Link to="/requisicoes/nova">
             <Button className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
               <Plus className="h-4 w-4" />
