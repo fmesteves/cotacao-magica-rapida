@@ -214,7 +214,7 @@ const Fornecedores = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Ativos</p>
                 <p className="text-xl font-bold">
-                  {fornecedores.filter((f) => f.status === 'ativo').length}
+                  {fornecedores.filter((f) => f.status === "ativo").length}
                 </p>
               </div>
             </div>
@@ -227,7 +227,7 @@ const Fornecedores = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Pendentes</p>
                 <p className="text-xl font-bold">
-                  {fornecedores.filter((f) => f.status === 'pendente').length}
+                  {fornecedores.filter((f) => f.status === "pendente").length}
                 </p>
               </div>
             </div>
@@ -247,11 +247,11 @@ const Fornecedores = () => {
       </div>
 
       {/* Table */}
-      <Card className="shadow-soft overflow-y-auto" style={{height: 'calc(100vh - 500px)'}}>
+      <Card className="shadow-soft">
         <CardHeader>
           <CardTitle>Lista de Fornecedores</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="scroll-tabela">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -311,7 +311,7 @@ const Fornecedores = () => {
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3 text-muted-foreground" />
                             <span className="text-sm">
-                              {forn.cidade ? `${forn.cidade}, ` : ''}
+                              {forn.cidade ? `${forn.cidade}, ` : ""}
                               {forn.estado}
                             </span>
                           </div>
@@ -349,7 +349,7 @@ const Fornecedores = () => {
                         <TableCell>{getStatusBadge(forn.status)}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(forn.created_at).toLocaleDateString(
-                            'pt-BR'
+                            "pt-BR"
                           )}
                         </TableCell>
                         <TableCell>

@@ -39,8 +39,7 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
     <Card className="shadow-soft">
       <CardContent className="p-6">
         <div
-          className="overflow-x-auto overflow-y-auto"
-          style={{ height: "calc(100vh - 550px)" }}
+          className="scroll-tabela"
         >
           <Table>
             <TableHeader>

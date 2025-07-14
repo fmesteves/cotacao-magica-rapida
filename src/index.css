@@ -126,3 +126,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .scroll-tabela {
+    @apply overflow-y-auto overflow-x-auto;
+    height: calc(100vh - 520px);
+  }
+
+  @screen short {
+    .scroll-tabela {
+      height: auto;
+      @apply overflow-visible;
+    }
+  }
+}
