@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   ShoppingCart,
@@ -28,6 +29,20 @@ interface HeaderProps {
 
 const Header = ({ collapsed, setCollapsed }: HeaderProps) => {
   const location = useLocation();
+
+  const [logo, setLogo] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogo(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const navigation = [
     { name: "Home", href: "/", icon: BarChart3 },
@@ -63,13 +78,36 @@ const Header = ({ collapsed, setCollapsed }: HeaderProps) => {
             )}
           </Button>
         </div>
-        <div className="flex items-center w-full flex-1 justify-between">
-          <Button onClick={() => console.log('Adicione uma logo')} className="bg-white/50 h-12 border-2 border-white border-dashed flex items-center px-10 gap-3 hover:bg-white/70">
-            <p className="text-white">Adicionar Logo</p>
-            <Upload className="text-white " />
-          </Button>
 
-          <div className="flex gap-8 ">
+        <div className="flex items-center w-full flex-1 justify-between">
+          {/* Botão ou imagem da logo */}
+          {logo ? (
+            <img
+              src={logo}
+              alt="Logo"
+              className="h-12 object-contain cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            />
+          ) : (
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-white/50 h-12 border-2 border-white border-dashed flex items-center px-10 gap-3 hover:bg-white/70"
+            >
+              <p className="text-white">Adicionar Logo</p>
+              <Upload className="text-white" />
+            </Button>
+          )}
+
+          {/* Input de upload escondido */}
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          <div className="flex gap-8">
             <Bell className="text-white" />
             <Settings className="text-white" />
           </div>
