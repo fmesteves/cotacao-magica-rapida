@@ -31,6 +31,7 @@ import type { CotacaoCompleta } from "@/types/cotacoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
+import CotacaoModal from "./CotacaoModal";
 
 interface CotacoesTableProps {
   cotacoes: CotacaoCompleta[];
@@ -47,6 +48,7 @@ const CotacoesForHome = ({
   const rowRef = useRef<HTMLTableRowElement>(null);
 
   const [itemsVisible, setItemsVisible] = useState(5);
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   useEffect(() => {
     const calcularItemsVisiveis = () => {
@@ -207,18 +209,11 @@ const CotacoesForHome = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button onClick={() => setDialogOpen(true)} size="sm" variant="outline">
                         <Eye className="h-3 w-3" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onEnviarConvites(cotacao)}
-                        disabled={!cotacao.cotacao_fornecedores?.length}
-                      >
-                        <Mail className="h-3 w-3" />
-                      </Button>
                     </div>
+                    <CotacaoModal cotacao={cotacao} close={() => setDialogOpen(false)} open={dialogOpen} />
                   </TableCell>
                 </TableRow>
               ))}

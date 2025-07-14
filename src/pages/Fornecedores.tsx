@@ -54,14 +54,12 @@ const Fornecedores = () => {
 
   const handleImport = async (fornecedoresImportados: any[]) => {
     try {
-      console.log('importar :', fornecedoresImportados);
 
       //  here we get the fornecedores from the array of files, separate the data and join in one array
       const fornecedores = fornecedoresImportados
         .map((file) => file.data)
         .flat();
 
-      console.log('fornecedores:', fornecedores);
 
       createManyFornecedor.mutate(fornecedores);
 
@@ -249,7 +247,7 @@ const Fornecedores = () => {
       </div>
 
       {/* Table */}
-      <Card className="shadow-soft">
+      <Card className="shadow-soft overflow-y-auto" style={{height: 'calc(100vh - 500px)'}}>
         <CardHeader>
           <CardTitle>Lista de Fornecedores</CardTitle>
         </CardHeader>

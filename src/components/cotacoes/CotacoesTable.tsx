@@ -10,6 +10,8 @@ import { getStatusColor, getStatusText, getProgressColor, calcularDiasRestantes,
 import type { CotacaoCompleta } from "@/types/cotacoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState } from "react";
+import CotacaoModal from "./CotacaoModal";
 
 interface CotacoesTableProps {
   cotacoes: CotacaoCompleta[];
@@ -18,6 +20,8 @@ interface CotacoesTableProps {
 }
 
 const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableProps) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [chosenQuote, setChosenQuote] = useState<CotacaoCompleta | undefined>();
   if (isLoading) {
     return (
       <Card className="shadow-soft">
@@ -34,7 +38,10 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
   return (
     <Card className="shadow-soft">
       <CardContent className="p-6">
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto overflow-y-auto"
+          style={{ height: "calc(100vh - 550px)" }}
+        >
           <Table>
             <TableHeader>
               <TableRow>
@@ -60,7 +67,9 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                   </TableCell>
                   <TableCell>
                     <p className="font-medium">{cotacao.descricao}</p>
-                    <p className="text-sm text-muted-foreground">{cotacao.titulo}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {cotacao.titulo}
+                    </p>
                   </TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(cotacao.status as any)}>
@@ -90,7 +99,8 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                         {calcularDiasRestantes(cotacao.data_limite)} dias
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        ({(() => {
+                        (
+                        {(() => {
                           try {
                             const date = new Date(cotacao.data_limite);
                             if (isNaN(date.getTime())) return "Data inválida";
@@ -98,7 +108,8 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                           } catch (error) {
                             return "Data inválida";
                           }
-                        })()})
+                        })()}
+                        )
                       </span>
                     </div>
                   </TableCell>
@@ -106,32 +117,35 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{cotacao.cotacao_fornecedores?.length || 0}</span>
+                        <span className="text-sm">
+                          {cotacao.cotacao_fornecedores?.length || 0}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Progress 
-                          value={calcularPercentualRespostas(cotacao)} 
-                          className="w-16 h-2" 
+                        <Progress
+                          value={calcularPercentualRespostas(cotacao)}
+                          className="w-16 h-2"
                         />
                         <span className="text-xs text-muted-foreground">
-                          {cotacao.cotacao_fornecedores?.filter(cf => cf.status_resposta === 'respondido').length || 0}/
-                          {cotacao.cotacao_fornecedores?.length || 0}
+                          {cotacao.cotacao_fornecedores?.filter(
+                            (cf) => cf.status_resposta === "respondido"
+                          ).length || 0}
+                          /{cotacao.cotacao_fornecedores?.length || 0}
                         </span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        onClick={() => {
+                          setDialogOpen(true);
+                          setChosenQuote(cotacao);
+                        }}
+                        size="sm"
                         variant="outline"
-                        onClick={() => onEnviarConvites(cotacao)}
-                        disabled={!cotacao.cotacao_fornecedores?.length}
                       >
-                        <Mail className="h-3 w-3" />
+                        <Eye className="h-3 w-3" />
                       </Button>
                     </div>
                   </TableCell>
@@ -139,6 +153,11 @@ const CotacoesTable = ({ cotacoes, onEnviarConvites, isLoading }: CotacoesTableP
               ))}
             </TableBody>
           </Table>
+          <CotacaoModal
+            cotacao={chosenQuote}
+            close={() => setDialogOpen(false)}
+            open={dialogOpen}
+          />
         </div>
       </CardContent>
     </Card>
