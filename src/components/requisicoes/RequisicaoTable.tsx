@@ -131,12 +131,6 @@ export const RequisicaoTable = ({
                             <Button size="sm" variant="outline">
                               Ver
                             </Button>
-                            <Button
-                              size="sm"
-                              className="bg-gradient-primary hover:opacity-90"
-                            >
-                              Cotar
-                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>

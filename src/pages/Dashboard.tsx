@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,12 +14,18 @@ import { CotacaoCompleta } from "@/types/cotacoes";
 import { useState } from "react";
 import EnviarConvitesModal from "@/components/cotacoes/EnviarConvitesModal";
 import CotacoesForHome from "@/components/cotacoes/CotacoesForHome";
+import { Link } from "react-router-dom";
+import ImportarFornecedores from '@/components/ImportarFornecedores';
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { useCreateManyFornecedor } from "@/hooks/useFornecedores";
+import { toast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { data: cotacoes = [], isLoading, error } = useCotacoes();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCotacao, setSelectedCotacao] =
     useState<CotacaoCompleta | null>(null);
+  const createManyFornecedor = useCreateManyFornecedor();
   const handleEnviarConvites = (cotacao: CotacaoCompleta) => {
     setSelectedCotacao(cotacao);
     setDialogOpen(true);
@@ -53,18 +60,62 @@ const Dashboard = () => {
     }
   };
 
+    const handleImport = async (fornecedoresImportados: any[]) => {
+      try {
+        //  here we get the fornecedores from the array of files, separate the data and join in one array
+        const fornecedores = fornecedoresImportados
+          .map((file) => file.data)
+          .flat();
+
+        createManyFornecedor.mutate(fornecedores);
+
+        toast({
+          title: "Fornecedores importados",
+          description: `${fornecedoresImportados.length} fornecedores foram importados com sucesso.`,
+        });
+
+        // setMostrarImportacao(false);
+      } catch (error) {
+        toast({
+          title: "Erro na importação",
+          description:
+            "Não foi possível importar os fornecedores. Tente novamente.",
+          variant: "destructive",
+        });
+      }
+    };
+
   return (
-    <div className="space-y-8 flex flex-col" style={{maxHeight: 'calc(100vh - 125px)'}}>
+    <div
+      className="space-y-8 flex flex-col"
+      style={{ maxHeight: "calc(100vh - 125px)" }}
+    >
       {/* Header */}
       <div className="border border-black/10 px-5 py-10 rounded-md flex items-center justify-between gap-16 w-fit ml-auto mr-auto">
-        <Button className="rounded-2xl">
-          <Upload className="text-white" />
-          <p className="font-thin">Importar Requisições</p>
-        </Button>
-        <Button className="rounded-2xl">
-          <Upload className="text-white" />
-          <p className="font-thin">Importar Fornecedores</p>
-        </Button>
+        <Link to="cotacoes/nova">
+          <Button className="rounded-2xl">
+            <Upload className="text-white" />
+            <p>Nova cotação</p>
+          </Button>
+        </Link>
+        <Dialog>
+          <DialogTrigger>
+            <Button
+              type="button"
+              // onClick={() => setMostrarImportacao(true)}
+              className="flex items-center gap-2 rounded-2xl"
+            >
+              <Upload className="h-4 w-4" />
+              Importar fornecedores
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-5xl h-[90vh] overflow-y-auto">
+            <ImportarFornecedores
+              // onClose={() => setMostrarImportacao(false)}
+              handleImport={handleImport}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats Cards */}
@@ -145,11 +196,11 @@ const Dashboard = () => {
           );
         })}
       </div>
-        <CotacoesForHome
-          cotacoes={cotacoes}
-          onEnviarConvites={handleEnviarConvites}
-          isLoading={isLoading}
-        />
+      <CotacoesForHome
+        cotacoes={cotacoes}
+        onEnviarConvites={handleEnviarConvites}
+        isLoading={isLoading}
+      />
       <EnviarConvitesModal
         open={dialogOpen}
         onOpenChange={setDialogOpen}

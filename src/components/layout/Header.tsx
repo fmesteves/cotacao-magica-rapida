@@ -1,5 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import ImportarFornecedores from "@/components/ImportarFornecedores";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { useCreateManyFornecedor } from "@/hooks/useFornecedores";
+import { toast } from "@/hooks/use-toast";
 import {
   ShoppingCart,
   Users,
@@ -31,6 +36,7 @@ const Header = ({ collapsed, setCollapsed }: HeaderProps) => {
   const location = useLocation();
 
   const [logo, setLogo] = useState<string | null>(null);
+  const createManyFornecedor = useCreateManyFornecedor();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,6 +47,31 @@ const Header = ({ collapsed, setCollapsed }: HeaderProps) => {
         setLogo(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImport = async (fornecedoresImportados: any[]) => {
+    try {
+      //  here we get the fornecedores from the array of files, separate the data and join in one array
+      const fornecedores = fornecedoresImportados
+        .map((file) => file.data)
+        .flat();
+
+      createManyFornecedor.mutate(fornecedores);
+
+      toast({
+        title: "Fornecedores importados",
+        description: `${fornecedoresImportados.length} fornecedores foram importados com sucesso.`,
+      });
+
+      // setMostrarImportacao(false);
+    } catch (error) {
+      toast({
+        title: "Erro na importação",
+        description:
+          "Não foi possível importar os fornecedores. Tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -165,36 +196,49 @@ const Header = ({ collapsed, setCollapsed }: HeaderProps) => {
             <div className="flex flex-col gap-4 items-center w-full px-2 mt-4">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link className="w-full" to={"requisicoes/nova"}>
-                    <Button className="w-full rounded-2xl" variant="premium">
-                      <Plus />
-                      {!collapsed && (
-                        <span className="ml-2">Nova requisição</span>
-                      )}
-                    </Button>
+                  <Link className="w-full" to={"cotacoes/nova"}>
+                    {!collapsed && (
+                      <Button className="w-full rounded-2xl" variant="premium">
+                        <Plus />
+                        <span className="ml-2">Nova cotação</span>
+                      </Button>
+                    )}
                   </Link>
                 </TooltipTrigger>
                 {collapsed && (
-                  <TooltipContent side="right">Nova requisição</TooltipContent>
+                  <TooltipContent side="right">Nova cotação</TooltipContent>
                 )}
               </Tooltip>
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link className="w-full" to={"fornecedores/novo"}>
-                    <Button
-                      className="w-full rounded-2xl bg-white text-primary"
-                      variant="premium"
-                    >
-                      <Plus />
-                      {!collapsed && (
-                        <span className="ml-2">Novo fornecedor</span>
-                      )}
-                    </Button>
-                  </Link>
+                  {!collapsed && (
+                    <Dialog>
+                      <DialogTrigger className="w-full">
+                        {!collapsed && (
+                          <Button
+                            className="w-full rounded-2xl bg-white text-primary"
+                            variant="premium"
+                            type="button"
+                          >
+                            <Plus />
+                            <span className="ml-2">Importar fornecedores</span>
+                          </Button>
+                        )}
+                      </DialogTrigger>
+                      <DialogContent className="max-w-5xl h-[90vh] overflow-y-auto">
+                        <ImportarFornecedores
+                          // onClose={() => setMostrarImportacao(false)}
+                          handleImport={handleImport}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </TooltipTrigger>
                 {collapsed && (
-                  <TooltipContent side="right">Novo fornecedor</TooltipContent>
+                  <TooltipContent side="right">
+                    Importar fornecedores
+                  </TooltipContent>
                 )}
               </Tooltip>
             </div>

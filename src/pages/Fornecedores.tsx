@@ -168,12 +168,12 @@ const Fornecedores = () => {
               />
             </DialogContent>
           </Dialog>
-          <Link to="/fornecedores/novo">
+          {/* <Link to="/fornecedores/novo">
             <Button className="flex items-center gap-2 bg-gradient-primary hover:opacity-90">
               <Plus className="h-4 w-4" />
               Novo Fornecedor
             </Button>
-          </Link>
+          </Link> */}
         </div>
       </div>
 
